@@ -102,8 +102,8 @@ class ResilienceTest(object):
                                    os.path.join('@rpath', lib_file)]
 
             command = self.target_build_swift + \
-                self.additional_compile_flags + \
-                compiler_flags
+                    self.additional_compile_flags + \
+                    compiler_flags
             verbose_print_command(command)
             returncode = subprocess.call(command)
             assert returncode == 0, str(command)
@@ -119,8 +119,9 @@ class ResilienceTest(object):
                 nm_cmd = self.target_nm + ["-gjU", output_dylib]
                 verbose_print_command(nm_cmd)
 
-                symbol_file = os.path.join(self.config_dir_map[config],
-                                           self.lib_name + ".symbols")
+                symbol_file = os.path.join(
+                    self.config_dir_map[config], f"{self.lib_name}.symbols"
+                )
 
                 with open(symbol_file, "w") as handle:
                     returncode = subprocess.call(nm_cmd, stdout=handle)
@@ -130,10 +131,12 @@ class ResilienceTest(object):
         if self.no_symbol_diff:
             return
 
-        before_symbol_file = os.path.join(self.config_dir_map["BEFORE"],
-                                          self.lib_name + ".symbols")
-        after_symbol_file = os.path.join(self.config_dir_map["AFTER"],
-                                         self.lib_name + ".symbols")
+        before_symbol_file = os.path.join(
+            self.config_dir_map["BEFORE"], f"{self.lib_name}.symbols"
+        )
+        after_symbol_file = os.path.join(
+            self.config_dir_map["AFTER"], f"{self.lib_name}.symbols"
+        )
 
         diff_cmd = ["diff",
                     "--changed-group-format=%<",
@@ -176,22 +179,20 @@ class ResilienceTest(object):
         for config1, config2 in self.configs():
             config1_lower = config1.lower()
             config2_lower = config2.lower()
-            output_obj = os.path.join(self.tmp_dir,
-                                      config1_lower + '_' + config2_lower)
+            output_obj = os.path.join(self.tmp_dir, f'{config1_lower}_{config2_lower}')
             if self.is_apple_platform():
                 rpath_origin = '@executable_path'
-            elif self.is_windows_host():
-                pass
-            else:
+            elif not self.is_windows_host():
                 # assume it is an ELF host
                 rpath_origin = '$ORIGIN'
 
             compiler_flags = [
-                '-L', self.config_dir_map[config2],
-                '-l' + self.lib_name,
-                os.path.join(self.config_dir_map[config2],
-                             'main.o'),
-                '-o', output_obj
+                '-L',
+                self.config_dir_map[config2],
+                f'-l{self.lib_name}',
+                os.path.join(self.config_dir_map[config2], 'main.o'),
+                '-o',
+                output_obj,
             ]
 
             if self.is_windows_host():
@@ -226,8 +227,7 @@ class ResilienceTest(object):
         for config1, config2 in self.configs():
             config1_lower = config1.lower()
             config2_lower = config2.lower()
-            output_obj = os.path.join(self.tmp_dir,
-                                      config1_lower + '_' + config2_lower)
+            output_obj = os.path.join(self.tmp_dir, f'{config1_lower}_{config2_lower}')
             tmp_dir_contents = glob.glob(
                 os.path.join(self.tmp_dir, self.config_dir_map[config1], '*'))
             command = self.target_run + [output_obj] + tmp_dir_contents

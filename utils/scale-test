@@ -153,9 +153,14 @@ def run_once_with_primary(args, ast, rng, primary_idx):
                 command = ["lldb", "--"] + command
             stats = "stats.json"
             if args.llvm_stat_reporter:
-                argv = command + ["-Xllvm", "-stats",
-                                  "-Xllvm", "-stats-json",
-                                  "-Xllvm", "-info-output-file=" + stats]
+                argv = command + [
+                    "-Xllvm",
+                    "-stats",
+                    "-Xllvm",
+                    "-stats-json",
+                    "-Xllvm",
+                    f"-info-output-file={stats}",
+                ]
             else:
                 argv = command + ["-stats-output-dir", d]
             try:
@@ -178,18 +183,17 @@ def run_once_with_primary(args, ast, rng, primary_idx):
 
 
 def run_once(args, ast, rng):
-    if args.sum_multi:
-        cumulative = {}
-        for i in range(len(rng)):
-            tmp = run_once_with_primary(args, ast, rng, i)
-            for (k, v) in tmp.items():
-                if k in cumulative:
-                    cumulative[k] += v
-                else:
-                    cumulative[k] = v
-        return cumulative
-    else:
+    if not args.sum_multi:
         return run_once_with_primary(args, ast, rng, -1)
+    cumulative = {}
+    for i in range(len(rng)):
+        tmp = run_once_with_primary(args, ast, rng, i)
+        for (k, v) in tmp.items():
+            if k in cumulative:
+                cumulative[k] += v
+            else:
+                cumulative[k] = v
+    return cumulative
 
 
 def run_many(args):
@@ -199,23 +203,22 @@ def run_many(args):
         print("**************************************************")
         print("")
         print("dtrace is unreliable on binaries w/ debug symbols")
-        print("please run 'strip -S %s'" % args.swiftc_binary)
+        print(f"please run 'strip -S {args.swiftc_binary}'")
         print("or pass a different --swiftc-binary")
         print("")
         print("**************************************************")
         print("")
         exit(1)
 
-    if not args.llvm_stat_reporter:
-        if not supports_stats_output_dir(args):
-            print("**************************************************")
-            print("")
-            print("unable to use new-style -stats-output-dir reporting,")
-            print("falling back to old-style -Xllvm -stats-json reporting")
-            print("(run with --llvm-stat-reporter to silence this warning)")
-            print("")
-            print("**************************************************")
-            args.llvm_stat_reporter = True
+    if not args.llvm_stat_reporter and not supports_stats_output_dir(args):
+        print("**************************************************")
+        print("")
+        print("unable to use new-style -stats-output-dir reporting,")
+        print("falling back to old-style -Xllvm -stats-json reporting")
+        print("(run with --llvm-stat-reporter to silence this warning)")
+        print("")
+        print("**************************************************")
+        args.llvm_stat_reporter = True
 
     if args.file == '-':
         ast = gyb.parse_template('stdin', sys.stdin.read())
@@ -224,9 +227,13 @@ def run_many(args):
             ast = gyb.parse_template(args.file, f.read())
     rng = range(args.begin, args.end, args.step)
     if args.step > (args.end - args.begin):
-        print("Step value", args.step,
-              "is too large for the range", str((args.begin, args.end)) + ".",
-              "Have you forgotten to override it?")
+        print(
+            "Step value",
+            args.step,
+            "is too large for the range",
+            f"{(args.begin, args.end)}.",
+            "Have you forgotten to override it?",
+        )
         exit(1)
     if args.multi_file or args.sum_multi:
         return (rng, [run_once(args, ast, range(i)) for i in rng])
@@ -381,9 +388,6 @@ def fit_function_to_data_by_least_squares(objective, params, bounds, xs, ys):
         if is_somewhat_small(ss_residuals / ss_total):
             r_squared = 1.0 - (ss_residuals / ss_total)
             return (fit_params, r_squared)
-        else:
-            # Bad fit, restart
-            pass
     raise ValueError("Nelder-Mead failed %d retries" % retries)
 
 
@@ -631,12 +635,12 @@ def report(args, rng, runs):
             "(perhaps try a different --select?)"
         return True
     rows = []
+    fit_r2_thresh = 0.99
     for k in keys:
         vals = [r[k] for r in runs]
         bounded = [max(v, 1) for v in vals]
         one_fit = False
         perfect_fit = False
-        fit_r2_thresh = 0.99
         lin_b, lin_a, lin_r2 = fit_linear_model(rng, bounded)
         if lin_r2 > fit_r2_thresh:
             one_fit = True
@@ -661,7 +665,7 @@ def report(args, rng, runs):
         except ValueError:
             pass
         if not one_fit:
-            print("failed to fit model to " + repr(vals))
+            print(f"failed to fit model to {repr(vals)}")
             return True
         if lin_r2 >= e_r2 and lin_r2 >= p_r2:
             # strict-linear is best
@@ -687,7 +691,7 @@ def report(args, rng, runs):
         if this_is_bad:
             bad = True
         if not args.quiet or this_is_bad:
-            print("O(%s) : %s" % (formatted, k))
+            print(f"O({formatted}) : {k}")
             if args.values:
                 print("                = ", vals)
 

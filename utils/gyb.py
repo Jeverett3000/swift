@@ -21,9 +21,7 @@ def get_line_starts(s):
     """
     starts = [0]
 
-    for line in s.split('\n'):
-        starts.append(starts[-1] + len(line) + 1)
-
+    starts.extend(starts[-1] + len(line) + 1 for line in s.split('\n'))
     starts[-1] -= 1
     return starts
 
@@ -491,11 +489,10 @@ class ParseContext(object):
                 yield kind
 
                 if (kind == 'gybBlockOpen'):
-                    # Absorb any '}% <optional-comment> \n'
-                    m2 = gyb_block_close.match(self.template, close_pos)
-                    if not m2:
+                    if m2 := gyb_block_close.match(self.template, close_pos):
+                        next_pos = m2.end(0)
+                    else:
                         raise ValueError("Invalid block closure")
-                    next_pos = m2.end(0)
                 else:
                     assert kind == 'substitutionOpen'
                     # skip past the closing '}'
@@ -512,9 +509,10 @@ class ParseContext(object):
 
                 # Strip off the leading indentation and %-sign
                 source_lines = re.split(
-                    '^' + re.escape(indentation),
+                    f'^{re.escape(indentation)}',
                     self.token_match.group('gybLines') + '\n',
-                    flags=re.MULTILINE)[1:]
+                    flags=re.MULTILINE,
+                )[1:]
 
                 if code_starts_with_dedent_keyword(source_lines):
                     self.close_lines = True
@@ -537,7 +535,7 @@ class ParseContext(object):
 
     def next_token(self):
         """Move to the next token"""
-        for kind in self.tokens:
+        for _ in self.tokens:
             return self.token_kind
 
         self.token_kind = None
@@ -561,22 +559,21 @@ class ExecutionContext(object):
 
     def append_text(self, text, file, line):
         # see if we need to inject a line marker
-        if self.line_directive:
-            if (file, line) != self.last_file_line:
-                # We can only insert the line directive at a line break
-                if len(self.result_text) == 0 \
+        if self.line_directive and (file, line) != self.last_file_line:
+            # We can only insert the line directive at a line break
+            if len(self.result_text) == 0 \
                    or self.result_text[-1].endswith('\n'):
-                    substitutions = {'file': file, 'line': line + 1}
-                    format_str = self.line_directive + '\n'
-                    self.result_text.append(format_str % substitutions)
-                # But if the new text contains any line breaks, we can create
-                # one
-                elif '\n' in text:
-                    i = text.find('\n')
-                    self.result_text.append(text[:i + 1])
-                    # and try again
-                    self.append_text(text[i + 1:], file, line + 1)
-                    return
+                substitutions = {'file': file, 'line': line + 1}
+                format_str = self.line_directive + '\n'
+                self.result_text.append(format_str % substitutions)
+            # But if the new text contains any line breaks, we can create
+            # one
+            elif '\n' in text:
+                i = text.find('\n')
+                self.result_text.append(text[:i + 1])
+                # and try again
+                self.append_text(text[i + 1:], file, line + 1)
+                return
 
         self.result_text.append(text)
         self.last_file_line = (file, line + text.count('\n'))
@@ -596,13 +593,15 @@ class ASTNode(object):
         raise NotImplementedError("ASTNode.__str__ is not implemented.")
 
     def format_children(self, indent):
-        if not self.children:
-            return ' []'
-
-        return '\n'.join(
-            ['', indent + '['] +
-            [x.__str__(indent + 4 * ' ') for x in self.children] +
-            [indent + ']'])
+        return (
+            '\n'.join(
+                ['', f'{indent}[']
+                + [x.__str__(indent + 4 * ' ') for x in self.children]
+                + [f'{indent}]']
+            )
+            if self.children
+            else ' []'
+        )
 
 
 class Block(ASTNode):
@@ -615,10 +614,7 @@ class Block(ASTNode):
         self.children = []
 
         while context.token_kind and not context.close_lines:
-            if context.token_kind == 'literal':
-                node = Literal
-            else:
-                node = Code
+            node = Literal if context.token_kind == 'literal' else Code
             self.children.append(node(context))
 
     def execute(self, context):
@@ -626,7 +622,7 @@ class Block(ASTNode):
             x.execute(context)
 
     def __str__(self, indent=''):
-        return indent + 'Block:' + self.format_children(indent)
+        return f'{indent}Block:{self.format_children(indent)}'
 
 
 class Literal(ASTNode):
@@ -664,9 +660,9 @@ class Code(ASTNode):
 
         def accumulate_code():
             s = source + (context.code_start_line - source_line_count) * '\n' \
-                + textwrap.dedent(context.code_text)
+                    + textwrap.dedent(context.code_text)
             line_count = context.code_start_line + \
-                context.code_text.count('\n')
+                    context.code_text.count('\n')
             context.next_token()
             return s, line_count
 
@@ -674,7 +670,7 @@ class Code(ASTNode):
         if context.token_kind.startswith('substitution'):
             eval_exec = 'eval'
             source, source_line_count = accumulate_code()
-            source = '(' + source.strip() + ')'
+            source = f'({source.strip()})'
 
         else:
             while context.token_kind == 'gybLinesOpen':
@@ -719,12 +715,12 @@ class Code(ASTNode):
         # If we got a result, the code was an expression, so append
         # its value
         if result is not None \
-                or (isinstance(result, str) and result != ''):
+                    or (isinstance(result, str) and result != ''):
             from numbers import Number, Integral
             result_string = None
             if isinstance(result, Number) and not isinstance(result, Integral):
                 result_string = repr(result)
-            elif isinstance(result, Integral) or isinstance(result, list):
+            elif isinstance(result, (Integral, list)):
                 result_string = str(result)
             else:
                 result_string = result

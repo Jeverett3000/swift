@@ -27,19 +27,17 @@ XFAIL_LIST = []
 
 # Global Objective-C classes created by various frameworks. We do not care
 # about these.
-IGNORABLE_GLOBAL_OBJC_CLASSES = set(
-    [
-        "__NSPlaceholderDate",
-        "NSCache",
-        "__NSPlaceholderTimeZone",
-        "NSPlaceholderNumber",
-        "NSPlaceholderString",
-        "__NSPlaceholderArray",
-        "__NSPlaceholderDictionary",
-        "_NSPlaceholderData",
-        "_NSJSONReader",
-    ]
-)
+IGNORABLE_GLOBAL_OBJC_CLASSES = {
+    "__NSPlaceholderDate",
+    "NSCache",
+    "__NSPlaceholderTimeZone",
+    "NSPlaceholderNumber",
+    "NSPlaceholderString",
+    "__NSPlaceholderArray",
+    "__NSPlaceholderDictionary",
+    "_NSPlaceholderData",
+    "_NSJSONReader",
+}
 
 
 class LeaksRunnerResult(perf_test_driver.Result):
@@ -52,9 +50,7 @@ class LeaksRunnerResult(perf_test_driver.Result):
         self.count = count
 
     def get_count(self):
-        if self.count is not None:
-            return str(self.count)
-        return "N/A"
+        return str(self.count) if self.count is not None else "N/A"
 
     def print_data(self, max_test_len):
         fmt = "{:<%d}{:<10}{:}" % (max_test_len + 5)
@@ -84,8 +80,8 @@ class LeaksRunnerBenchmarkDriver(perf_test_driver.BenchmarkDriver):
         p = subprocess.Popen(
             [
                 data["path"],
-                "--num-samples={}".format(data["num_samples"]),
-                "--num-iters={}".format(num_iters),
+                f'--num-samples={data["num_samples"]}',
+                f"--num-iters={num_iters}",
                 data["test_name"],
             ],
             stdout=subprocess.PIPE,
@@ -128,8 +124,7 @@ class LeaksRunnerBenchmarkDriver(perf_test_driver.BenchmarkDriver):
                     "VERBOSE (%s,%s): %s" % tmp)
                 sys.stderr.flush()
 
-            total_count = d["objc_count"] + d["swift_count"]
-            return total_count
+            return d["objc_count"] + d["swift_count"]
         except Exception:
             tmp = (data["path"], data["test_name"])
             sys.stderr.write("Failed parse output! (%s,%s)\n" % tmp)
@@ -137,8 +132,8 @@ class LeaksRunnerBenchmarkDriver(perf_test_driver.BenchmarkDriver):
             return None
 
     def process_input(self, data):
-        test_name = "({},{})".format(data["opt"], data["test_name"])
-        print("Running {}...".format(test_name))
+        test_name = f'({data["opt"]},{data["test_name"]})'
+        print(f"Running {test_name}...")
         sys.stdout.flush()
         total_count1 = self.run_test(data, data["num_iters"])
         if total_count1 is None:

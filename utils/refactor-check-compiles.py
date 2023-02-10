@@ -9,7 +9,7 @@ def run_cmd(cmd, desc):
     try:
         return subprocess.check_output(cmd, universal_newlines=True)
     except subprocess.CalledProcessError:
-        print('FAILED ' + desc + ':', file=sys.stderr)
+        print(f'FAILED {desc}:', file=sys.stderr)
         print(' '.join(cmd), file=sys.stderr)
         sys.exit(1)
 
@@ -103,8 +103,10 @@ def parse_args():
 
 def main():
     (args, extra_refactor_args) = parse_args()
-    temp_file_name = os.path.split(args.source_filename)[-1] + '.' + \
-        args.pos.replace(':', '.')
+    temp_file_name = (
+        f'{os.path.split(args.source_filename)[-1]}.'
+        + args.pos.replace(':', '.')
+    )
     temp_file_path = os.path.join(args.temp_dir, temp_file_name)
 
     extra_both_args = []

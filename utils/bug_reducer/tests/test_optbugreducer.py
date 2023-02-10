@@ -51,8 +51,7 @@ class OptBugReducerTestCase(unittest.TestCase):
             [self.tools.sil_passpipeline_dumper, '-Performance']))
         self.passes = []
         for y in (x[2:] for x in json_data):
-            for z in y:
-                self.passes.append('--pass=-' + z[1])
+            self.passes.extend(f'--pass=-{z[1]}' for z in y)
         random.seed(0xf487c07f)
         random.shuffle(self.passes)
         self.passes.insert(random.randint(0, len(self.passes)),
@@ -64,13 +63,11 @@ class OptBugReducerTestCase(unittest.TestCase):
         os.makedirs(self.module_cache)
 
     def _get_test_file_path(self, module_name):
-        return os.path.join(self.file_dir,
-                            '{}_{}.swift'.format(
-                                self.root_basename, module_name))
+        return os.path.join(self.file_dir, f'{self.root_basename}_{module_name}.swift')
 
     def _get_sib_file_path(self, filename):
         (root, ext) = os.path.splitext(filename)
-        return os.path.join(self.tmp_dir, os.path.basename(root) + '.sib')
+        return os.path.join(self.tmp_dir, f'{os.path.basename(root)}.sib')
 
     def run_swiftc_command(self, name):
         input_file_path = self._get_test_file_path(name)
@@ -93,12 +90,12 @@ class OptBugReducerTestCase(unittest.TestCase):
             'opt',
             self.build_dir,
             self._get_sib_file_path(self._get_test_file_path(name)),
-            '--sdk=%s' % self.sdk,
-            '--module-cache=%s' % self.module_cache,
-            '--module-name=%s' % name,
-            '--work-dir=%s' % self.tmp_dir,
+            f'--sdk={self.sdk}',
+            f'--module-cache={self.module_cache}',
+            f'--module-name={name}',
+            f'--work-dir={self.tmp_dir}',
             '--extra-arg=-bug-reducer-tester-target-func=test_target',
-            '--extra-arg=-bug-reducer-tester-failure-kind=opt-crasher'
+            '--extra-arg=-bug-reducer-tester-failure-kind=opt-crasher',
         ]
         args.extend(self.passes)
         output = subprocess.check_output(args).split("\n")
@@ -122,12 +119,12 @@ class OptBugReducerTestCase(unittest.TestCase):
             'opt',
             self.build_dir,
             self._get_sib_file_path(self._get_test_file_path(name)),
-            '--sdk=%s' % self.sdk,
-            '--module-cache=%s' % self.module_cache,
-            '--module-name=%s' % name,
-            '--work-dir=%s' % self.tmp_dir,
+            f'--sdk={self.sdk}',
+            f'--module-cache={self.module_cache}',
+            f'--module-name={name}',
+            f'--work-dir={self.tmp_dir}',
             '--extra-arg=-bug-reducer-tester-target-func=closure_test_target',
-            '--extra-arg=-bug-reducer-tester-failure-kind=opt-crasher'
+            '--extra-arg=-bug-reducer-tester-failure-kind=opt-crasher',
         ]
         args.extend(self.passes)
         output = subprocess.check_output(args).split("\n")
@@ -151,13 +148,13 @@ class OptBugReducerTestCase(unittest.TestCase):
             'opt',
             self.build_dir,
             self._get_sib_file_path(self._get_test_file_path(name)),
-            '--sdk=%s' % self.sdk,
-            '--module-cache=%s' % self.module_cache,
-            '--module-name=%s' % name,
-            '--work-dir=%s' % self.tmp_dir,
+            f'--sdk={self.sdk}',
+            f'--module-cache={self.module_cache}',
+            f'--module-name={name}',
+            f'--work-dir={self.tmp_dir}',
             '--extra-arg=-bug-reducer-tester-target-func=__TF_test_target',
             '--extra-arg=-bug-reducer-tester-failure-kind=opt-crasher',
-            '--reduce-sil'
+            '--reduce-sil',
         ]
         args.extend(self.passes)
         output = subprocess.check_output(args).split("\n")
@@ -165,8 +162,10 @@ class OptBugReducerTestCase(unittest.TestCase):
         self.assertTrue(
             '*** Final Functions: $s18testreducefunction6foo413yyF' in output)
         self.assertTrue('*** Final Passes: --bug-reducer-tester' in output)
-        re_end = 'testoptbugreducer_testreducefunction_initial_'
-        re_end += '30775a3d942671a403702a9846afa7a4.sib'
+        re_end = (
+            'testoptbugreducer_testreducefunction_initial_'
+            + '30775a3d942671a403702a9846afa7a4.sib'
+        )
         output_file_re = re.compile(r'\*\*\* Final File: .*' + re_end)
         output_matches = [
             1 for o in output if output_file_re.match(o) is not None]

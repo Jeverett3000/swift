@@ -32,7 +32,7 @@ def update_cmakelists(name):
 
     file_new_contents = insert_line_alphabetically(
         name,
-        "    single-source/" + name + "\n",
+        f"    single-source/{name}" + "\n",
         file_contents,
         r"    single-source\/([a-zA-Z]+)",
     )
@@ -55,7 +55,7 @@ def create_benchmark_file(name):
     formatted_template = benchmark_template.format(name=name)
 
     relative_path = create_relative_path("../single-source/")
-    source_file_path = os.path.join(relative_path, name + ".swift")
+    source_file_path = os.path.join(relative_path, f"{name}.swift")
     with open(source_file_path, "w") as f:
         f.write(formatted_template)
 
@@ -80,8 +80,8 @@ def add_import_benchmark(name):
     for line in file_contents:
         # check if this line is a definition of a benchmark and get its name
         match = re.search(r"import ([a-zA-Z]+)", line)
-        if match and match.group(1):
-            benchmark_name = match.group(1)
+        if match and match[1]:
+            benchmark_name = match[1]
             # find where to insert the new benchmark in the right alphabetical
             # order.
             if (
@@ -91,7 +91,7 @@ def add_import_benchmark(name):
                 and name > previous_benchmark_name
             ):
                 if read_test_dependencies:
-                    file_new_contents.append("import " + name + "\n" + line)
+                    file_new_contents.append(f"import {name}" + "\n" + line)
                 else:
                     # all test dependencies are first specified, so from now
                     # on we can look where to insert the new benchmark.
@@ -119,7 +119,7 @@ def add_register_benchmark(name):
 
     file_new_contents = insert_line_alphabetically(
         name,
-        "registerBenchmark(" + name + ")\n",
+        f"registerBenchmark({name}" + ")\n",
         file_contents,
         r"registerBenchmark\(([a-zA-Z]+)\)",
     )
@@ -140,8 +140,8 @@ def insert_line_alphabetically(name, new_line, lines, regex):
     for line in lines:
         # apply regex and get name of benchmark on this line
         match = re.search(regex, line)
-        if match and match.group(1):
-            benchmark_name = match.group(1)
+        if match and match[1]:
+            benchmark_name = match[1]
             # check if we're at the line where we have to insert the new
             # benchmark in the correct alphabetical order
             if (

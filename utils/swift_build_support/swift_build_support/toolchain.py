@@ -107,15 +107,7 @@ class GenericUnix(Toolchain):
             found, suffix = ret
             self.cc, self.cxx = found
 
-            if suffix == '':
-                # Some platform may have `clang`, `clang++`, `llvm-cov-3.6`
-                # but not `llvm-cov`. In that case, we assume `clang` is
-                # corresponding to the best version of llvm tools found.
-                self.llvm_suffixes = suffixes
-            else:
-                # Otherwise, we must have llvm tools with the same suffix as
-                # `clang` or `clang++`
-                self.llvm_suffixes = [suffix]
+            self.llvm_suffixes = suffixes if suffix == '' else [suffix]
 
     def find_clang(self, tools, suffixes):
         for suffix in suffixes:
@@ -135,10 +127,7 @@ class GenericUnix(Toolchain):
 
     def find_tool(self, *names):
         for name in names:
-            if name.startswith('llvm-'):
-                found = self.find_llvm_tool(name)
-            else:
-                found = which(name)
+            found = self.find_llvm_tool(name) if name.startswith('llvm-') else which(name)
             if found is not None:
                 return found
         return None
@@ -178,9 +167,7 @@ class FreeBSD(GenericUnix):
         # http://www.freebsd.org/cgi/man.cgi?sysctl(8)
         out = shell.capture(['sysctl', '-n', 'kern.osreldate'],
                             dry_run=False, echo=False, optional=True)
-        if out is None:
-            return None
-        return int(out)
+        return None if out is None else int(out)
 
 
 class OpenBSD(GenericUnix):

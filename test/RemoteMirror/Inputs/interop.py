@@ -48,9 +48,19 @@ subprocess.check_call(['clang',
 # Build a test library with each Swift compiler passed in.
 for i, (swiftc, swiftlib) in enumerate(zip(swiftcs, swiftlibs)):
     subprocess.check_call(
-        ['xcrun', swiftc, '-emit-library', 'interop.swift',
-         '-o', os.path.join('/tmp', 'libtest' + str(i) + '.dylib'),
-         '-Xlinker', '-rpath', '-Xlinker', swiftlib])
+        [
+            'xcrun',
+            swiftc,
+            '-emit-library',
+            'interop.swift',
+            '-o',
+            os.path.join('/tmp', f'libtest{str(i)}.dylib'),
+            '-Xlinker',
+            '-rpath',
+            '-Xlinker',
+            swiftlib,
+        ]
+    )
 
 # Run the test harness with all combinations of the remote mirror libraries.
 for i in range(len(swiftcs) + 1):
@@ -59,9 +69,8 @@ for i in range(len(swiftcs) + 1):
             print('Testing', arg, 'with mirror libs:')
             for lib in localMirrorlibs:
                 print('\t', lib)
-            callArgs = ['/tmp/test']
-            dylibPath = os.path.join('/tmp', 'libtest' + str(i) + '.dylib')
-            callArgs.append(dylibPath)
+            dylibPath = os.path.join('/tmp', f'libtest{str(i)}.dylib')
+            callArgs = ['/tmp/test', dylibPath]
             callArgs += list(localMirrorlibs)
             print(' '.join(callArgs))
             subprocess.call(callArgs)

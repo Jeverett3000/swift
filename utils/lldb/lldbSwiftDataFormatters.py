@@ -24,10 +24,8 @@ def __lldb_init_module(debugger, internal_dict):
 
 def SmallBitVectorSummaryProvider(valobj, internal_dict):
     underlyingValue = valobj.GetChildMemberWithName('X').GetValueAsUnsigned()
-    numBaseBits = 32
     is64Bit = sys.maxsize > 2**32
-    if is64Bit:
-        numBaseBits = 64
+    numBaseBits = 64 if is64Bit else 32
     smallNumRawBits = numBaseBits - 1
     smallNumSizeBits = None
     if numBaseBits == 32:
@@ -47,11 +45,8 @@ def SmallBitVectorSummaryProvider(valobj, internal_dict):
     smallSize = smallRawBits >> smallNumDataBits
     bits = smallRawBits & ((1 << (smallSize + 1)) - 1)
     res = "["
-    for i in reversed(range(0, smallSize)):
-        if bool(bits & (1 << i)):
-            res += '1'
-        else:
-            res += '0'
+    for i in reversed(range(smallSize)):
+        res += '1' if bool(bits & (1 << i)) else '0'
     res += "]"
     return res
 
@@ -110,25 +105,24 @@ class DemangleNodeSynthProvider:
         if self.payload_kind is DemangleNodePayloadKind.INDEX and index == 0:
             return self.payload.GetChildMemberWithName('Index')
         if self.payload_kind is DemangleNodePayloadKind.ONE_CHILD \
-                and index == 0:
+                    and index == 0:
             return self.payload \
-                .GetChildMemberWithName('InlineChildren') \
-                .GetChildAtIndex(0)
+                    .GetChildMemberWithName('InlineChildren') \
+                    .GetChildAtIndex(0)
         if self.payload_kind is DemangleNodePayloadKind.TWO_CHILDREN \
-                and 0 <= index <= 1:
+                    and 0 <= index <= 1:
             return self.payload \
-                .GetChildMemberWithName('InlineChildren') \
-                .GetChildAtIndex(index)
+                    .GetChildMemberWithName('InlineChildren') \
+                    .GetChildAtIndex(index)
         if self.payload_kind is DemangleNodePayloadKind.MANY_CHILDREN \
-                and index >= 0:
+                    and index >= 0:
             node_vector = self.payload.GetChildMemberWithName('Children')
             length = node_vector.GetChildMemberWithName('Number')
             if index >= length.GetValueAsUnsigned():
                 return None
             nodes_ptr = node_vector.GetChildMemberWithName('Nodes')
             offset = self.node_ptr_size * index
-            return nodes_ptr.CreateChildAtOffset('[' + str(index) + ']',
-                                                 offset, self.node_ptr_type)
+            return nodes_ptr.CreateChildAtOffset(f'[{index}]', offset, self.node_ptr_type)
         return None
 
     def update(self):

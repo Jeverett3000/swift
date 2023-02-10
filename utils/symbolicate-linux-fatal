@@ -77,10 +77,11 @@ def setup_lldb_target(binary, memmap):
 def check_base_address(dynlib_path, dynlib_baseaddr, memmap):
     global known_memmap
     if dynlib_path in memmap or dynlib_path in known_memmap:
-        if dynlib_path in memmap:
-            existing_baseaddr = memmap[dynlib_path]
-        else:
-            existing_baseaddr = known_memmap[dynlib_path]
+        existing_baseaddr = (
+            memmap[dynlib_path]
+            if dynlib_path in memmap
+            else known_memmap[dynlib_path]
+        )
         if existing_baseaddr != dynlib_baseaddr:
             error_msg = "Mismatched base address for: {0:s}, " \
                         "had: {1:x}, now got {2:x}"
@@ -144,7 +145,7 @@ def get_processed_stack(binary, dyn_libs, stack):
             known_memmap[dynlib_path] = dynlib_baseaddr
             memmap[dynlib_path] = dynlib_baseaddr
         else:
-            framePC = framePC + symbol_offset
+            framePC += symbol_offset
         full_stack.append(
             {"line": line, "framePC": framePC, "dynlib_fname": dynlib_fname})
 

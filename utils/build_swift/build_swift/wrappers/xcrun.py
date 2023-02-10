@@ -100,8 +100,7 @@ class XcrunWrapper(shell.ExecutableWrapper):
         """
 
         output = self.check_output('--version')
-        matches = _VERSION_PATTERN.match(output.rstrip())
-        if matches:
+        if matches := _VERSION_PATTERN.match(output.rstrip()):
             return Version(matches.group('version'))
 
         return None

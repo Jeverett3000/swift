@@ -65,8 +65,7 @@ def vars_of_args(args):
         # even when the user isn't asking us to _output_ module-grouped data.
         all_triples = all(len(k.split('.')) == 3 for k in b.keys())
         if args.group_by_module or all_triples:
-            vargs['select_stat'] = set(stat_name_minus_module(k)
-                                       for k in b.keys())
+            vargs['select_stat'] = {stat_name_minus_module(k) for k in b.keys()}
         else:
             vargs['select_stat'] = b.keys()
     return vargs
@@ -176,10 +175,7 @@ def show_incrementality(args):
 
 def diff_and_pct(old, new):
     if old == 0:
-        if new == 0:
-            return (0, 0.0)
-        else:
-            return (new, 100.0)
+        return (0, 0.0) if new == 0 else (new, 100.0)
     delta = (new - old)
     delta_pct = round((float(delta) / float(old)) * 100.0, 2)
     return (delta, delta_pct)
@@ -250,7 +246,7 @@ def set_csv_baseline(args):
             print("updating %d baseline entries in %s" %
                   (len(existing), args.set_csv_baseline))
     else:
-        print("making new baseline " + args.set_csv_baseline)
+        print(f"making new baseline {args.set_csv_baseline}")
     fieldnames = ["epoch", "name", "value"]
 
     def _open(path):
@@ -343,12 +339,9 @@ def write_comparison(args, old_stats, new_stats):
 
         def format_field(field, row):
             if field == 'name':
-                if args.group_by_module:
-                    return stat_name_minus_module(row.name)
-                else:
-                    return row.name
+                return stat_name_minus_module(row.name) if args.group_by_module else row.name
             elif field == 'delta_pct':
-                s = str(row.delta_pct) + "%"
+                s = f"{str(row.delta_pct)}%"
                 if args.github_emoji:
                     if row_state(row, args) == REGRESSED:
                         s += " :no_entry:"
@@ -357,10 +350,7 @@ def write_comparison(args, old_stats, new_stats):
                 return s
             else:
                 v = int(getattr(row, field))
-                if row.name.startswith('time.'):
-                    return format_time(v)
-                else:
-                    return "{:,d}".format(v)
+                return format_time(v) if row.name.startswith('time.') else "{:,d}".format(v)
 
         def format_table(elts):
             out = args.output
@@ -397,7 +387,7 @@ def write_comparison(args, old_stats, new_stats):
                 format_table(elts)
             out.write('</details>\n')
 
-        closed_regressions = (args.close_regressions or len(regressed) == 0)
+        closed_regressions = args.close_regressions or not regressed
         format_details('Regressed', regressed, closed_regressions)
         format_details('Improved', improved, True)
         format_details('Unchanged (delta < %s%% or delta < %s)' %
@@ -424,7 +414,7 @@ def compare_to_csv_baseline(args):
     m = merge_all_jobstats((s for d in args.remainder
                             for s in load_stats_dir(d, **vargs)),
                            **vargs)
-    old_stats = dict((k, v) for (k, (_, v)) in old_stats.items())
+    old_stats = {k: v for (k, (_, v)) in old_stats.items()}
     new_stats = m.stats
 
     return write_comparison(args, old_stats, new_stats)
@@ -460,18 +450,16 @@ def evaluate(args):
     for (k, v) in merged.stats.items():
         if k.startswith("time.") or '.time.' in k:
             continue
-        m = re.search(ident, k)
-        if m:
+        if m := re.search(ident, k):
             i = m.groups()[0]
             if args.verbose:
-                print("%s => %s" % (i, v))
+                print(f"{i} => {v}")
             env[i] = v
     try:
         if eval(args.evaluate, env):
             return 0
-        else:
-            print("evaluate condition failed: '%s'" % args.evaluate)
-            return 1
+        print(f"evaluate condition failed: '{args.evaluate}'")
+        return 1
     except Exception as e:
         print(e)
         return 1
@@ -493,19 +481,16 @@ def evaluate_delta(args):
     for r in compare_stats(args, old_stats.stats, new_stats.stats):
         if r.name.startswith("time.") or '.time.' in r.name:
             continue
-        m = re.search(ident, r.name)
-        if m:
+        if m := re.search(ident, r.name):
             i = m.groups()[0]
             if args.verbose:
-                print("%s => %s" % (i, r.delta))
+                print(f"{i} => {r.delta}")
             env[i] = r.delta
     try:
         if eval(args.evaluate_delta, env):
             return 0
-        else:
-            print("evaluate-delta condition failed: '%s'" %
-                  args.evaluate_delta)
-            return 1
+        print(f"evaluate-delta condition failed: '{args.evaluate_delta}'")
+        return 1
     except Exception as e:
         print(e)
         return 1
@@ -523,42 +508,41 @@ def render_profiles(args):
     for statsdir in args.remainder:
         jobprofs = list_stats_dir_profiles(statsdir, **vargs)
         index_path = os.path.join(statsdir, "profile-index.html")
-        all_profile_types = set([k for keys in [j.profiles.keys()
-                                                for j in jobprofs
-                                                if j.profiles is not None]
-                                 for k in keys])
+        all_profile_types = {
+            k
+            for keys in [
+                j.profiles.keys() for j in jobprofs if j.profiles is not None
+            ]
+            for k in keys
+        }
         with open(index_path, "wb") as index:
             for ptype in all_profile_types:
-                index.write("<h2>Profile type: " + ptype + "</h2>\n")
+                index.write(f"<h2>Profile type: {ptype}" + "</h2>\n")
                 index.write("<ul>\n")
                 for j in jobprofs:
                     if j.is_frontend_job():
-                        index.write("    <li>" +
-                                    ("Module %s :: %s" %
-                                     (j.module, " ".join(j.jobargs))) + "\n")
+                        index.write((f'    <li>Module {j.module} :: {" ".join(j.jobargs)}' + "\n"))
                         index.write("    <ul>\n")
                         profiles = sorted(j.profiles.get(ptype, {}).items())
                         for counter, path in profiles:
-                            title = ("Module: %s, File: %s, "
-                                     "Counter: %s, Profile: %s" %
-                                     (j.module, j.input, counter, ptype))
-                            subtitle = j.triple + ", -" + j.opt
-                            svg = os.path.abspath(path + ".svg")
-                            with open(path) as p, open(svg, "wb") as g:
+                            subtitle = f"{j.triple}, -{j.opt}"
+                            title = f"Module: {j.module}, File: {j.input}, Counter: {counter}, Profile: {ptype}"
+                            svg = os.path.abspath(f"{path}.svg")
+                            with (open(path) as p, open(svg, "wb") as g):
                                 import subprocess
-                                print("Building flamegraph " + svg)
+                                print(f"Building flamegraph {svg}")
                                 subprocess.check_call([flamegraph_pl,
                                                        "--title", title,
                                                        "--subtitle", subtitle],
                                                       stdin=p, stdout=g)
                             link = ("<tt><a href=\"file://%s\">%s</a></tt>" %
                                     (svg, counter))
-                            index.write("        <li>" + link + "\n")
+                            index.write(f"        <li>{link}" + "\n")
                         index.write("    </ul>\n")
                         index.write("    </li>\n")
         if args.browse_profiles:
             import webbrowser
-            webbrowser.open_new_tab("file://" + os.path.abspath(index_path))
+            webbrowser.open_new_tab(f"file://{os.path.abspath(index_path)}")
 
 
 def process(args):

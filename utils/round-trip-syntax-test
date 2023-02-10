@@ -15,15 +15,17 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 class RoundTripTask(object):
     def __init__(self, input_filename, action, swift_syntax_test,
                  skip_bad_syntax):
-        assert action == '-round-trip-parse' or action == '-round-trip-lex'
+        assert action in ['-round-trip-parse', '-round-trip-lex']
         if sys.version_info[0] < 3:
             assert type(input_filename) == str
         assert type(swift_syntax_test) == str
 
-        assert os.path.isfile(input_filename), \
-            "Input file {} is not accessible!".format(input_filename)
-        assert os.path.isfile(swift_syntax_test), \
-            "{} tool is not accessible!".format(swift_syntax_test)
+        assert os.path.isfile(
+            input_filename
+        ), f"Input file {input_filename} is not accessible!"
+        assert os.path.isfile(
+            swift_syntax_test
+        ), f"{swift_syntax_test} tool is not accessible!"
         self.input_filename = input_filename
         self.action = action
         self.swift_syntax_test = swift_syntax_test
@@ -84,8 +86,8 @@ class RoundTripTask(object):
         lines = difflib.unified_diff(contents, stdout_contents,
                                      fromfile=self.input_filename,
                                      tofile='-')
-        diff = '\n'.join(line for line in lines)
-        return diff if diff else None
+        diff = '\n'.join(lines)
+        return diff or None
 
 
 def swift_files_in_dir(d):
@@ -157,8 +159,7 @@ This driver invokes swift-syntax-test using -round-trip-lex and
         sys.exit(1)
 
     if not os.path.isfile(args.tool_path):
-        raise RuntimeError("Couldn't find swift-syntax-test at {}"
-                           .format(args.tool_path))
+        raise RuntimeError(f"Couldn't find swift-syntax-test at {args.tool_path}")
 
     lex_tasks = [RoundTripTask(filename, '-round-trip-lex', args.tool_path,
                                args.skip_bad_syntax)

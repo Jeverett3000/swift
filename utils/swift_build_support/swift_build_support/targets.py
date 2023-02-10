@@ -64,10 +64,7 @@ class Platform(object):
         Returns True if the given target name belongs to a one of this
         platform's targets.
         """
-        for target in self.targets:
-            if target.name == target_name:
-                return True
-        return False
+        return any(target.name == target_name for target in self.targets)
 
     def swift_flags(self, args):
         """
@@ -97,7 +94,7 @@ class DarwinPlatform(Platform):
     @property
     def is_embedded(self):
         """Check if this is a Darwin platform for embedded devices."""
-        return self.name != "macosx" and self.name != "maccatalyst"
+        return self.name not in ["macosx", "maccatalyst"]
 
     @property
     def supports_benchmark(self):
@@ -127,14 +124,14 @@ class DarwinPlatform(Platform):
 
         sdk_path = xcrun.sdk_path(sdk=xcrun_sdk_name, toolchain=toolchain)
         if not sdk_path:
-            raise RuntimeError('Cannot find SDK path for %s' % xcrun_sdk_name)
+            raise RuntimeError(f'Cannot find SDK path for {xcrun_sdk_name}')
 
         # Find the SDKSettings.plist for this sdK
         plistCommand = [
             '/usr/libexec/PlistBuddy',
             '-c',
-            'Print :SupportedTargets:%s:Archs' % (self.name),
-            '%s/SDKSettings.plist' % (sdk_path)
+            f'Print :SupportedTargets:{self.name}:Archs',
+            f'{sdk_path}/SDKSettings.plist',
         ]
 
         sdk_archs = shell.capture(plistCommand, dry_run=False, echo=True)
@@ -151,41 +148,38 @@ class AndroidPlatform(Platform):
         return True
 
     def swift_flags(self, args):
-        flags = '-target %s-unknown-linux-android%s ' % (args.android_arch,
-                                                         args.android_api_level)
+        flags = f'-target {args.android_arch}-unknown-linux-android{args.android_api_level} '
 
-        flags += '-resource-dir %s/swift-%s-%s/lib/swift ' % (
-                 args.build_root, self.name, args.android_arch)
+        flags += f'-resource-dir {args.build_root}/swift-{self.name}-{args.android_arch}/lib/swift '
 
         android_toolchain_path = self.ndk_toolchain_path(args)
 
-        flags += '-sdk %s/sysroot ' % (android_toolchain_path)
-        flags += '-tools-directory %s/bin' % (android_toolchain_path)
+        flags += f'-sdk {android_toolchain_path}/sysroot '
+        flags += f'-tools-directory {android_toolchain_path}/bin'
         return flags
 
     def cmake_options(self, args):
         options = cmake.CMakeOptions()
         options.define('CMAKE_SYSTEM_NAME', 'Android')
         options.define('CMAKE_SYSTEM_VERSION' , args.android_api_level)
-        options.define('CMAKE_SYSTEM_PROCESSOR', args.android_arch if not
-                       args.android_arch == 'armv7'
-                       else 'armv7-a')
+        options.define(
+            'CMAKE_SYSTEM_PROCESSOR',
+            args.android_arch if args.android_arch != 'armv7' else 'armv7-a',
+        )
         options.define('CMAKE_ANDROID_NDK:PATH', args.android_ndk)
         return options
 
     def ndk_toolchain_path(self, args):
-        return '%s/toolchains/llvm/prebuilt/%s' % (
-            args.android_ndk, StdlibDeploymentTarget.host_target().name)
+        return f'{args.android_ndk}/toolchains/llvm/prebuilt/{StdlibDeploymentTarget.host_target().name}'
 
     def swiftpm_config(self, args, output_dir, swift_toolchain, resource_path):
-        config_file = '%s/swiftpm-android-%s.json' % (output_dir, args.android_arch)
+        config_file = f'{output_dir}/swiftpm-android-{args.android_arch}.json'
 
         if os.path.exists(config_file):
-            print("Using existing config at %s" % config_file)
+            print(f"Using existing config at {config_file}")
             return config_file
 
-        spm_json = '{\n'
-        spm_json += '  "version": 1,\n'
+        spm_json = '{\n' + '  "version": 1,\n'
         spm_json += '  "target": "%s-unknown-linux-android%s",\n' % (
                     args.android_arch, args.android_api_level)
         spm_json += '  "toolchain-bin-dir": "%s/bin",\n' % swift_toolchain
@@ -213,9 +207,7 @@ class AndroidPlatform(Platform):
 class OpenBSDPlatform(Platform):
     def cmake_options(self, args):
         toolchain_file = os.getenv('OPENBSD_USE_TOOLCHAIN_FILE')
-        if not toolchain_file:
-            return ''
-        return f'-DCMAKE_TOOLCHAIN_FILE="${toolchain_file}"'
+        return f'-DCMAKE_TOOLCHAIN_FILE="${toolchain_file}"' if toolchain_file else ''
 
 
 class Target(object):
@@ -231,7 +223,7 @@ class Target(object):
 
     @property
     def name(self):
-        return "{}-{}".format(self.platform.name, self.arch)
+        return f"{self.platform.name}-{self.arch}"
 
 
 class StdlibDeploymentTarget(object):
@@ -454,7 +446,7 @@ def toolchain_path(install_destdir, install_prefix):
     built_toolchain_path = install_destdir
     if platform.system() == 'Darwin':
         # The prefix is an absolute path, so concatenate without os.path.
-        built_toolchain_path += darwin_toolchain_prefix(install_prefix) + "/usr"
+        built_toolchain_path += f"{darwin_toolchain_prefix(install_prefix)}/usr"
     else:
         built_toolchain_path += install_prefix
     return built_toolchain_path

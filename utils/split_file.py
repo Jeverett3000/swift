@@ -33,11 +33,10 @@ args = parser.parse_args()
 fp_out = None
 
 for line in args.input:
-    m = re.match(r'^//\s*BEGIN\s+([^\s]+)\s*$', line)
-    if m:
+    if m := re.match(r'^//\s*BEGIN\s+([^\s]+)\s*$', line):
         if fp_out:
             fp_out.close()
-        fp_out = open(os.path.join(args.out_dir, m.group(1)), 'w')
+        fp_out = open(os.path.join(args.out_dir, m[1]), 'w')
     elif fp_out:
         fp_out.write(line)
 

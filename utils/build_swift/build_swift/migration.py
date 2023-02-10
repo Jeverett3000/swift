@@ -38,8 +38,7 @@ class UnknownSDKError(Exception):
     def __init__(self, sdk):
         self.sdk = sdk
 
-        super(UnknownSDKError, self).__init__(
-            'Unknown SDK: {}'.format(self.sdk))
+        super(UnknownSDKError, self).__init__(f'Unknown SDK: {self.sdk}')
 
 
 def migrate_swift_sdks(args):

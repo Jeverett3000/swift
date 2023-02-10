@@ -49,14 +49,13 @@ class Block(object):
         Block.current_index += 1
         if preds is not None:
             for pred in re.split("[, %]", preds):
-                can_pred = pred.strip()
-                if can_pred:
+                if can_pred := pred.strip():
                     self.preds.append(can_pred)
 
     def add_line(self, text):
         if self.content is None:
             self.content = ""
-        escaped_text = re.sub(r'([\\<>{}"|])', r'\\\1', text[0:80]).rstrip()
+        escaped_text = re.sub(r'([\\<>{}"|])', r'\\\1', text[:80]).rstrip()
         if len(escaped_text) > 0:
             self.content += escaped_text + '\\l'
             self.last_line = text
@@ -65,13 +64,12 @@ class Block(object):
         if self.succs is None:
             self.succs = []
             if self.last_line is not None:
-                for match in re.finditer(r'\bbb[0-9]+\w*\b', self.last_line):
-                    self.succs.append(match.group())
-
+                self.succs.extend(
+                    match.group()
+                    for match in re.finditer(r'\bbb[0-9]+\w*\b', self.last_line)
+                )
                 it = re.finditer(r'\blabel %"?([^\s"]+)\b', self.last_line)
-                for match in it:
-                    self.succs.append(match.group(1))
-
+                self.succs.extend(match.group(1) for match in it)
         return self.succs
 
 
@@ -91,10 +89,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    suffix = ""
-    if args.output_suffix:
-        suffix = args.output_suffix
-
+    suffix = args.output_suffix or ""
     block_list = []
     block_map = {}
     cur_block = None
@@ -110,14 +105,14 @@ def main():
         block_name = None
         preds = None
         if sil_block_match:
-            block_name = sil_block_match.group(1)
-            preds = sil_block_match.group(4)
+            block_name = sil_block_match[1]
+            preds = sil_block_match[4]
         elif llvm_block_match1:
-            block_name = llvm_block_match1.group(1)
-            preds = llvm_block_match1.group(2)
+            block_name = llvm_block_match1[1]
+            preds = llvm_block_match1[2]
         elif llvm_block_match2:
-            block_name = llvm_block_match2.group(1)
-            preds = llvm_block_match2.group(2)
+            block_name = llvm_block_match2[1]
+            preds = llvm_block_match2[2]
         elif line.startswith(' '):
             if cur_block is not None:
                 cur_block.add_line(line)
@@ -139,7 +134,7 @@ def main():
             if adj_name not in block_map:
                 new_blocks[adj_name] = Block(adj_name, None)
 
-    block_map.update(new_blocks.items())
+    block_map |= new_blocks.items()
 
     # Add missing edges if we didn't see a successor in the terminator
     # but the block is mentioned in the pred list of the successor.
@@ -151,7 +146,7 @@ def main():
                 pred_block.get_succs().append(block.name)
 
     # Write the output dot file.
-    file_name = tempfile.gettempdir() + "/viewcfg" + suffix + ".dot"
+    file_name = f"{tempfile.gettempdir()}/viewcfg{suffix}.dot"
     with open(file_name, 'w') as out_file:
         out_file.write('digraph "CFG" {\n')
         out_file.write("""graph [fontname = "{font}"];
@@ -180,8 +175,8 @@ def main():
     if args.renderer == 'Graphviz':
         subprocess.call(["open", "-a", "Graphviz", file_name])
     elif args.renderer == 'dot':
-        pdf = '%s.pdf' % file_name
-        subprocess.call(["dot", "-Tpdf", file_name, '-o%s' % pdf])
+        pdf = f'{file_name}.pdf'
+        subprocess.call(["dot", "-Tpdf", file_name, f'-o{pdf}'])
         subprocess.call(["open", "-a", "Preview", pdf])
     else:
         raise RuntimeError('Unknown renderer?!')

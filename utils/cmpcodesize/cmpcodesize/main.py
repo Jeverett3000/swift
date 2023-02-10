@@ -150,10 +150,7 @@ How to specify files:
             'Incorrect usage: Must specify between one and two files when ' + \
             'using --list, but you specified no files.'
 
-    csv_out = None
-    if parsed_arguments.parseable:
-        csv_out = csv.writer(sys.stdout)
-
+    csv_out = csv.writer(sys.stdout) if parsed_arguments.parseable else None
     if separator_token in parsed_arguments.files:
         separator_index = parsed_arguments.files.index(separator_token)
         old_files = parsed_arguments.files[:separator_index]
@@ -192,17 +189,17 @@ How to specify files:
                     new_files.extend(new_expanded)
                     num_expanded += 1
 
-        if num_expanded != 0 and num_expanded != len(old_file_args):
+        if num_expanded not in [0, len(old_file_args)]:
             sys.exit("mix of expanded/not-expanded arguments")
         if num_expanded == 0:
             if len(old_file_args) > 2:
                 sys.exit("too many arguments")
-            old_files = old_file_args[0:1]
+            old_files = old_file_args[:1]
             new_files = old_file_args[1:2]
 
     for file in (old_files + new_files):
         if not os.path.isfile(file):
-            sys.exit("file " + file + " not found")
+            sys.exit(f"file {file} not found")
 
     if parsed_arguments.list_functions:
         if not new_files:

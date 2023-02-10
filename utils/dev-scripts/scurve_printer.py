@@ -46,7 +46,7 @@ def main():
 
     x_axis_title = args.x_axis_title or FIELDS[0]
     y_axis_title = args.y_axis_title or FIELDS[1]
-    title = args.title or "{} vs {}".format(x_axis_title, y_axis_title)
+    title = args.title or f"{x_axis_title} vs {y_axis_title}"
 
     fig, ax = plt.subplots()
     fig.set_size_inches(18.5, 18.5)

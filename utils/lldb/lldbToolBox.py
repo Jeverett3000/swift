@@ -29,7 +29,7 @@ def import_llvm_dataformatters(debugger):
     if not os.access(LLVM_DATAFORMATTER_PATH, os.F_OK):
         print("WARNING! Could not find LLVM data formatters!")
         return
-    cmd = 'command script import {}'.format(LLVM_DATAFORMATTER_PATH)
+    cmd = f'command script import {LLVM_DATAFORMATTER_PATH}'
     debugger.HandleCommand(cmd)
     print("Loaded LLVM data formatters.")
 
@@ -38,7 +38,7 @@ def import_swift_dataformatters(debugger):
     if not os.access(SWIFT_DATAFORMATTER_PATH, os.F_OK):
         print("WARNING! Could not find Swift data formatters!")
         return
-    cmd = 'command script import {}'.format(SWIFT_DATAFORMATTER_PATH)
+    cmd = f'command script import {SWIFT_DATAFORMATTER_PATH}'
     debugger.HandleCommand(cmd)
     print("Loaded Swift data formatters.")
 
@@ -85,7 +85,7 @@ def disassemble_to_file(debugger, command, exec_ctx, result, internal_dict):
         name = args.func_name
         result = exec_ctx.target.FindFunctions(name)
         if result is None:
-            raise RuntimeError('No function with name: {}'.format(name))
+            raise RuntimeError(f'No function with name: {name}')
         if len(result) > 1:
             errorStr = 'Matched multiple functions to name: {}'
             raise RuntimeError(errorStr.format(name))

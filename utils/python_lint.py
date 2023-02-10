@@ -73,10 +73,9 @@ def _is_package_installed(name):
 # -----------------------------------------------------------------------------
 
 def lint(args, verbose=False):
-    all_packages_installed = all([
-        _is_package_installed(name)
-        for name in _REQUIRED_PACKAGES
-    ])
+    all_packages_installed = all(
+        _is_package_installed(name) for name in _REQUIRED_PACKAGES
+    )
 
     if not all_packages_installed:
         if verbose:

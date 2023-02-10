@@ -25,7 +25,7 @@ def fatal_error(message, stream=sys.stderr):
     function outputs to stderr.
     """
 
-    stream.write('[{}] ERROR: {}\n'.format(sys.argv[0], message))
+    stream.write(f'[{sys.argv[0]}] ERROR: {message}\n')
     stream.flush()
     sys.exit(1)
 
@@ -48,16 +48,14 @@ def clear_log_time():
 
 
 def log_time(event, command, duration=0):
-    f = open(log_time_path(), "a")
+    with open(log_time_path(), "a") as f:
+        log_event = {
+            "event": event,
+            "command": command,
+            "duration": "%.2f" % float(duration),
+        }
 
-    log_event = {
-        "event": event,
-        "command": command,
-        "duration": "%.2f" % float(duration),
-    }
-
-    f.write("{}\n".format(json.dumps(log_event)))
-    f.close()
+        f.write(f"{json.dumps(log_event)}\n")
 
 
 @contextlib.contextmanager
@@ -76,10 +74,10 @@ def log_analyzer():
     """
     build_script_log_path = log_time_path()
     print("--- Build Script Analyzer ---", file=sys.stderr)
-    build_events = []
-    total_duration = 0
     if os.path.exists(build_script_log_path):
-        print("Build Script Log: {}".format(build_script_log_path), file=sys.stderr)
+        print(f"Build Script Log: {build_script_log_path}", file=sys.stderr)
+        build_events = []
+        total_duration = 0
         with open(build_script_log_path) as f:
             for event in f:
                 build_event = json.loads(event)
@@ -105,10 +103,9 @@ def log_analyzer():
         minutes, seconds = divmod(remainder, 60)
 
         if hours > 0:
-            formatted_duration = " ({}h {}m {}s)".format(
-                int(hours), int(minutes), int(seconds))
+            formatted_duration = f" ({int(hours)}h {int(minutes)}m {int(seconds)}s)"
         elif minutes > 0:
-            formatted_duration = " ({}m {}s)".format(int(minutes), int(seconds))
+            formatted_duration = f" ({int(minutes)}m {int(seconds)}s)"
         else:
             formatted_duration = ""
 
@@ -116,5 +113,7 @@ def log_analyzer():
             total_duration) + formatted_duration, file=sys.stderr)
     else:
         print("Skip build script analyzer", file=sys.stderr)
-        print(".build_script_log file not found at {}".format(build_script_log_path),
-              file=sys.stderr)
+        print(
+            f".build_script_log file not found at {build_script_log_path}",
+            file=sys.stderr,
+        )

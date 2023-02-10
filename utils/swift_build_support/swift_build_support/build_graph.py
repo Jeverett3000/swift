@@ -28,7 +28,7 @@ def _get_po_ordered_nodes(root, invertedDepMap):
     po_ordered_nodes = []
 
     # Until we no longer have nodes to visit...
-    while not len(worklist) == 0:
+    while worklist:
         # First grab the last element of the worklist. If we have already
         # visited this node, just pop it and skip it.
         #
@@ -87,8 +87,7 @@ class BuildDAG(object):
         self.invertedDepMap = {}
 
     def add_edge(self, pred, succ):
-        self.invertedDepMap.setdefault(pred, set([succ])) \
-                           .add(succ)
+        self.invertedDepMap.setdefault(pred, {succ}).add(succ)
 
     def set_root(self, root):
         # Assert that we always only have one root.
@@ -112,7 +111,7 @@ class BuildDAG(object):
         # enumeration of the list. This will give us a dictionary mapping our
         # product names to their reverse post order number.
         rpo_ordered_nodes = list(reversed(po_ordered_nodes))
-        node_to_rpot_map = dict((y, x) for x, y in enumerate(rpo_ordered_nodes))
+        node_to_rpot_map = {y: x for x, y in enumerate(rpo_ordered_nodes)}
 
         # Now before we return our rpo_ordered_nodes and our node_to_rpot_map, lets
         # verify that we didn't find any cycles. We can do this by traversing
@@ -122,11 +121,11 @@ class BuildDAG(object):
         for n, node in enumerate(rpo_ordered_nodes):
             for dep in self.invertedDepMap.get(node, []):
                 if node_to_rpot_map[dep] < n:
-                    print('n: {}. node: {}.'.format(n, node))
-                    print('dep: {}.'.format(dep))
-                    print('inverted dependency map: {}'.format(self.invertedDepMap))
-                    print('rpo ordered nodes: {}'.format(rpo_ordered_nodes))
-                    print('rpo node to rpo number map: {}'.format(node_to_rpot_map))
+                    print(f'n: {n}. node: {node}.')
+                    print(f'dep: {dep}.')
+                    print(f'inverted dependency map: {self.invertedDepMap}')
+                    print(f'rpo ordered nodes: {rpo_ordered_nodes}')
+                    print(f'rpo node to rpo number map: {node_to_rpot_map}')
                     raise RuntimeError('Found cycle in build graph!')
 
         return (rpo_ordered_nodes, node_to_rpot_map)
@@ -143,7 +142,7 @@ def produce_scheduled_build(input_product_classes):
     visited = set(input_product_classes)
 
     # Construct the DAG.
-    while len(worklist) > 0:
+    while worklist:
         entry = worklist.pop()
         deps = entry.get_dependencies()
         if len(deps) == 0:

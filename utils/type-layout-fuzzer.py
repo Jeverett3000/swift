@@ -19,7 +19,7 @@ if len(sys.argv) >= 2:
     if sys.argv[1] == "--objc":
         objcInterop = True
     if sys.argv[1] == "--help":
-        print("Usage: " + sys.argv[0] + " [--objc]", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} [--objc]", file=sys.stderr)
         print("", file=sys.stderr)
         print("  --objc          Include ObjC-interop types", file=sys.stderr)
         sys.exit(2)
@@ -49,7 +49,7 @@ def randomTypeReference(depth):
         which = random.randint(0, bound)
         if which < len(classesDefined):
             return classesDefined[which]
-        newName = "T" + str(len(typesDefined))
+        newName = f"T{len(typesDefined)}"
 
         def defineRandomRelatedType(name):
             defineRandomNominalType(name, depth)
@@ -61,7 +61,7 @@ def randomTypeReference(depth):
         return randomTypeList(depth + 1)
 
     def metatype():
-        return "(" + randomTypeReference(depth + 1) + ").Type"
+        return f"({randomTypeReference(depth + 1)}).Type"
 
     def leaf():
         leaves = ["Int", "String", "Int8", "Int16", "Int32", "Int64",
@@ -80,21 +80,20 @@ def randomTypeReference(depth):
 def defineRandomFields(depth, basename):
     numMembers = random.randint(0, maxMembers)
     for i in range(numMembers):
-        print("  var " + basename + str(i) + ": " +
-              randomTypeReference(depth + 1))
+        print(f"  var {basename}{str(i)}: {randomTypeReference(depth + 1)}")
 
 
 def defineRandomClass(name, depth):
     global classesDefined
     classesDefined.append(name)
-    print("class " + name, end="")
+    print(f"class {name}", end="")
 
     def inheritNSObject():
         print(": NSObject", end="")
 
     def inheritsOtherClass():
         print(": ", end="")
-        name = "T" + str(len(typesDefined))
+        name = f"T{len(typesDefined)}"
 
         def defineRandomBaseClass(name):
             defineRandomClass(name, depth)
@@ -116,17 +115,17 @@ def defineRandomClass(name, depth):
 
     print(" {")
     # Prevent errors about lack of initializers
-    print("  init(" + name + ": ()) { fatalError() }")
+    print(f"  init({name}" + ": ()) { fatalError() }")
     # The contents of classes are interesting only for top-level type
     if depth == 0:
-        defineRandomFields(depth, "x" + name)
+        defineRandomFields(depth, f"x{name}")
     print("}")
     print()
 
 
 def defineRandomNominalType(name, depth=0):
     def struct():
-        print("struct " + name + " {")
+        print(f"struct {name}" + " {")
         defineRandomFields(depth, "x")
         print("}")
         print()
@@ -136,11 +135,11 @@ def defineRandomNominalType(name, depth=0):
 
     def enum():
         # TODO: indirect cases
-        print("enum " + name + " {")
+        print(f"enum {name}" + " {")
 
         numCases = random.randint(0, maxMembers)
         for i in range(numCases):
-            print("  case x" + str(i) + randomTypeList(depth + 1))
+            print(f"  case x{str(i)}{randomTypeList(depth + 1)}")
 
         print("}")
         print()

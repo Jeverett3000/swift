@@ -32,21 +32,17 @@ class SwiftIntegerType(object):
         self.bits = bits
         self.is_signed = is_signed
 
-        if is_word:
-            self.possible_bitwidths = [32, 64]
-        else:
-            self.possible_bitwidths = [bits]
-
+        self.possible_bitwidths = [32, 64] if is_word else [bits]
         self.min = int_min(bits, is_signed)
         self.max = int_max(bits, is_signed)
 
         # Derived properties
         self.stdlib_name = \
-            ('' if is_signed else 'U') + \
-            'Int' + \
-            ('' if is_word else str(bits))
+                ('' if is_signed else 'U') + \
+                'Int' + \
+                ('' if is_word else str(bits))
 
-        self.builtin_name = 'Int' + str(bits)
+        self.builtin_name = f'Int{str(bits)}'
 
     def get_opposite_signedness(self):
         return SwiftIntegerType(self.is_word, self.bits, not self.is_signed)

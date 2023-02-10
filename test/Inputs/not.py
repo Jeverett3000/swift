@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 if len(sys.argv) < 2:
-    print("Too few args to " + sys.argv[0])
+    print(f"Too few args to {sys.argv[0]}")
     sys.exit(0)
 
 try:

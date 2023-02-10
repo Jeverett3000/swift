@@ -18,10 +18,12 @@ import subprocess
 import sys
 
 logging_format = '%(asctime)s %(levelname)s %(message)s'
-logging.basicConfig(level=logging.DEBUG,
-                    format=logging_format,
-                    filename='/tmp/%s.log' % os.path.basename(__file__),
-                    filemode='w')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format=logging_format,
+    filename=f'/tmp/{os.path.basename(__file__)}.log',
+    filemode='w',
+)
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 formatter = logging.Formatter(logging_format)

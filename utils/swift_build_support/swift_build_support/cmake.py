@@ -43,16 +43,17 @@ class CMakeOptions(object):
         if value is None:
             value = ""
         elif not isinstance(value, (str, Number)):
-            raise ValueError('define: invalid value for key %s: %s (%s)' %
-                             (var, value, type(value)))
-        self._options.append('-D%s=%s' % (var, value))
+            raise ValueError(
+                f'define: invalid value for key {var}: {value} ({type(value)})'
+            )
+        self._options.append(f'-D{var}={value}')
 
     def undefine(self, var):
         """Utility to undefine cmake options in this object.
 
         opts.undefine("FOO")       # -> -UFOO
         """
-        self._options.append('-U%s' % var)
+        self._options.append(f'-U{var}')
 
     def extend(self, tuples_or_options):
         if isinstance(tuples_or_options, CMakeOptions):
@@ -72,7 +73,7 @@ class CMakeOptions(object):
             return 'TRUE'
         if value in [False, 0, 'false', 'no', '0']:
             return 'FALSE'
-        raise ValueError("true_false: invalid value: %s" % value)
+        raise ValueError(f"true_false: invalid value: {value}")
 
     def __len__(self):
         return self._options.__len__()
@@ -153,12 +154,11 @@ class CMake(object):
                                                          'bin', 'clang'))
             define("CMAKE_CXX_COMPILER:PATH", os.path.join(toolchain_path,
                                                            'bin', 'clang++'))
-            define("CMAKE_Swift_COMPILER:PATH", cmake_swiftc_path)
         else:
             cmake_swiftc_path = os.getenv('CMAKE_Swift_COMPILER', toolchain.swiftc)
             define("CMAKE_C_COMPILER:PATH", toolchain.cc)
             define("CMAKE_CXX_COMPILER:PATH", toolchain.cxx)
-            define("CMAKE_Swift_COMPILER:PATH", cmake_swiftc_path)
+        define("CMAKE_Swift_COMPILER:PATH", cmake_swiftc_path)
         define("CMAKE_LIBTOOL:PATH", toolchain.libtool)
         define("CMAKE_AR:PATH", toolchain.ar)
         define("CMAKE_RANLIB:PATH", toolchain.ranlib)
@@ -168,8 +168,7 @@ class CMake(object):
                    "Debug;Release;MinSizeRel;RelWithDebInfo")
 
         if args.clang_user_visible_version:
-            major, minor, patch = \
-                args.clang_user_visible_version.components[0:3]
+            major, minor, patch = args.clang_user_visible_version.components[:3]
             define("LLVM_VERSION_MAJOR:STRING", major)
             define("LLVM_VERSION_MINOR:STRING", minor)
             define("LLVM_VERSION_PATCH:STRING", patch)
@@ -197,12 +196,12 @@ class CMake(object):
         build_args = list(args.build_args)
 
         if args.cmake_generator == 'Ninja':
-            build_args += ['-j%s' % jobs]
+            build_args += [f'-j{jobs}']
             if args.verbose_build:
                 build_args += ['-v']
 
         elif args.cmake_generator == 'Unix Makefiles':
-            build_args += ['-j%s' % jobs]
+            build_args += [f'-j{jobs}']
             if args.verbose_build:
                 build_args += ['VERBOSE=1']
 
@@ -234,7 +233,7 @@ class CMake(object):
         patch = -1
 
         file = open(cmake_version_file, "r")
-        for line in file.readlines():
+        for line in file:
             m = re.findall(r'set\(CMake_VERSION_MAJOR (\d+)\)', line)
             if len(m) == 1:
                 major = int(m[0])
@@ -248,11 +247,8 @@ class CMake(object):
             m = re.findall(r'set\(CMake_VERSION_PATCH (\d+)\)', line)
             if len(m) == 1:
                 patch = int(m[0])
-                continue
-
         if major == -1 or minor == -1 or patch == -1:
-            raise RuntimeError("Cant determine CMake version from %s"
-                               % cmake_version_file)
+            raise RuntimeError(f"Cant determine CMake version from {cmake_version_file}")
 
         return (major, minor, patch)
 
@@ -266,8 +262,7 @@ class CMake(object):
                 if len(m) == 1:
                     build_root = m[0]
 
-        cmake_build_dir = os.path.join(build_root, 'cmake-%s' %
-                                       self.args.host_target)
+        cmake_build_dir = os.path.join(build_root, f'cmake-{self.args.host_target}')
         if not os.path.isdir(cmake_build_dir):
             os.makedirs(cmake_build_dir)
 
@@ -275,8 +270,7 @@ class CMake(object):
         os.chdir(cmake_build_dir)
         shell.call_without_sleeping([cmake_bootstrap, '--no-qt-gui', '--',
                                     '-DCMAKE_USE_OPENSSL=OFF'], echo=True)
-        shell.call_without_sleeping(['make', '-j%s' % self.args.build_jobs],
-                                    echo=True)
+        shell.call_without_sleeping(['make', f'-j{self.args.build_jobs}'], echo=True)
         os.chdir(cwd)
         return os.path.join(cmake_build_dir, 'bin', 'cmake')
 

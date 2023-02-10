@@ -23,18 +23,20 @@ def collect_catalyst_frameworks(frameworks_path):
             name = frame[:-len(".framework")]
             # using the existence of this interface file as a sign of catalyst
             # being supported
-            macabi_interface_path = \
-                os.path.join(frameworks_path, frame,
-                             'Modules', name + '.swiftmodule',
-                             'x86_64-apple-ios-macabi.swiftinterface')
-            if os.path.exists(macabi_interface_path):
-                if name not in denylist:
-                    names.append(name)
+            macabi_interface_path = os.path.join(
+                frameworks_path,
+                frame,
+                'Modules',
+                f'{name}.swiftmodule',
+                'x86_64-apple-ios-macabi.swiftinterface',
+            )
+            if os.path.exists(macabi_interface_path) and name not in denylist:
+                names.append(name)
     return names
 
 
 def get_catalyst_frameworks(sdk_path):
-    frameworks_path = sdk_path + "/System/Library/Frameworks"
+    frameworks_path = f"{sdk_path}/System/Library/Frameworks"
     ios_support_path = sdk_path + \
         '/System/iOSSupport/System/Library/Frameworks/'
     return collect_catalyst_frameworks(frameworks_path) + \
@@ -42,19 +44,18 @@ def get_catalyst_frameworks(sdk_path):
 
 
 def get_frameworks(sdk_path, swift_frameworks_only):
-    frameworks_path = sdk_path + "/System/Library/Frameworks"
+    frameworks_path = f"{sdk_path}/System/Library/Frameworks"
     names = []
     for frame in os.listdir(frameworks_path):
         if frame[0] == '_':
             continue
         if frame.endswith(".framework"):
             name = frame[:-len(".framework")]
-            header_dir_path = frameworks_path + '/' + frame + '/Headers'
-            module_dir_path = frameworks_path + '/' + frame + '/Modules'
-            swiftmodule_path = module_dir_path + '/' + name + '.swiftmodule'
-            old_modulemap_path = frameworks_path + '/' + frame + '/module.map'
-            old_modulemap_private_path = frameworks_path + '/' + frame + \
-                '/module_private.map'
+            header_dir_path = f'{frameworks_path}/{frame}/Headers'
+            module_dir_path = f'{frameworks_path}/{frame}/Modules'
+            swiftmodule_path = f'{module_dir_path}/{name}.swiftmodule'
+            old_modulemap_path = f'{frameworks_path}/{frame}/module.map'
+            old_modulemap_private_path = f'{frameworks_path}/{frame}/module_private.map'
 
             if os.path.exists(swiftmodule_path):
                 if name not in denylist:
@@ -79,7 +80,7 @@ def get_frameworks(sdk_path, swift_frameworks_only):
                           file=sys.stderr)
                 continue
 
-            if should_exclude_framework(frameworks_path + '/' + frame):
+            if should_exclude_framework(f'{frameworks_path}/{frame}'):
                 continue
 
             if name in denylist:
@@ -89,7 +90,7 @@ def get_frameworks(sdk_path, swift_frameworks_only):
 
 
 def get_overlays(sdk_path):
-    overlay_path = sdk_path + "/usr/lib/swift/"
+    overlay_path = f"{sdk_path}/usr/lib/swift/"
     names = []
     for overlay in os.listdir(overlay_path):
         if overlay.endswith(".swiftmodule"):
@@ -101,27 +102,24 @@ def get_overlays(sdk_path):
 
 
 def should_exclude_framework(frame_path):
-    module_map_path = frame_path + '/Modules/module.modulemap'
+    module_map_path = f'{frame_path}/Modules/module.modulemap'
     if not os.path.exists(module_map_path):
         return False
     contents = open(module_map_path).read()
-    if "requires !swift" in contents:
-        return True
-
-    return False
+    return "requires !swift" in contents
 
 
 def print_clang_imports(frames, use_hash):
     for name in frames:
         if use_hash:
-            print("#import <" + name + "/" + name + ".h>")
+            print(f"#import <{name}/{name}.h>")
         else:
-            print("@import " + name + ";")
+            print(f"@import {name};")
 
 
 def print_swift_imports(frames):
     for name in frames:
-        print("import " + name)
+        print(f"import {name}")
 
 
 def main():
@@ -154,15 +152,14 @@ def main():
 
     if opts.swift_overlay_only:
         frames = get_overlays(opts.sdk)
-    else:
-        if opts.catalyst:
-            if opts.swift_frameworks_only:
-                frames = get_catalyst_frameworks(opts.sdk)
-            else:
-                parser.error("only support find catalyst frameworks "
-                             "with --swift-frameworks-only")
+    elif opts.catalyst:
+        if opts.swift_frameworks_only:
+            frames = get_catalyst_frameworks(opts.sdk)
         else:
-            frames = get_frameworks(opts.sdk, opts.swift_frameworks_only)
+            parser.error("only support find catalyst frameworks "
+                         "with --swift-frameworks-only")
+    else:
+        frames = get_frameworks(opts.sdk, opts.swift_frameworks_only)
     if opts.v:
         for name in frames:
             print('Including: ', name, file=sys.stderr)

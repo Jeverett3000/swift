@@ -67,7 +67,7 @@ if args.vendor == "apple":
     deps = [line.split(" ")[0] for line in lines if " U " in line]
     print("")
 else:
-    print("vendor {} not handled yet".format(args.vendor))
+    print(f"vendor {args.vendor} not handled yet")
     sys.exit(1)
 
 deps = [dep for dep in deps if not dep.startswith("_$")]
@@ -93,19 +93,19 @@ required_dependencies = ["_malloc", "_free"]
 fail = False
 for symbol in required_dependencies:
     if symbol not in deps:
-        print("Error: Required dependency '{}' missing".format(symbol))
+        print(f"Error: Required dependency '{symbol}' missing")
         fail = True
 
 allowlist = set(common_expected_dependencies + vendor_specific_dependencies)
 for symbol in deps:
     if symbol not in allowlist:
-        print("Error: Unexpected dependency '{}'".format(symbol))
+        print(f"Error: Unexpected dependency '{symbol}'")
         fail = True
 
 for symbol in allowlist:
     if symbol not in deps:
-        print("Warning: Allowed dependency '{}' not present".format(symbol))
+        print(f"Warning: Allowed dependency '{symbol}' not present")
 
 print("")
-print("All checks done. Result: {}".format("FAIL" if fail else "SUCCESS"))
+print(f'All checks done. Result: {"FAIL" if fail else "SUCCESS"}')
 sys.exit(1 if fail else 0)

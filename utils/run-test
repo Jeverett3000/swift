@@ -59,17 +59,17 @@ host_target = StdlibDeploymentTarget.host_target().name
 
 
 def error_exit(msg):
-    print("%s: %s" % (os.path.basename(sys.argv[0]), msg), file=sys.stderr)
+    print(f"{os.path.basename(sys.argv[0])}: {msg}", file=sys.stderr)
     sys.exit(1)
 
 
 # Return true if the path looks like swift build directory.
 def is_swift_build_dir(path, unified_build_dir):
-    if not unified_build_dir:
-        tests_path = [path, "test-%s" % host_target]
-    else:
-        tests_path = [path, "tools", "swift", "test-%s" % host_target]
-
+    tests_path = (
+        [path, "tools", "swift", f"test-{host_target}"]
+        if unified_build_dir
+        else [path, f"test-{host_target}"]
+    )
     return (os.path.exists(os.path.join(path, "CMakeCache.txt")) and
             os.path.isdir(os.path.join(*tests_path)))
 
@@ -93,11 +93,9 @@ def is_subpath(path, d):
 # directory. If the path is not sub path of test directories in source,
 # return the path as is.
 def normalize_test_path(path, build_dir, variant, unified_build_dir):
-    if not unified_build_dir:
-        tests_path = [build_dir]
-    else:
-        tests_path = [build_dir, "tools", "swift"]
-
+    tests_path = (
+        [build_dir, "tools", "swift"] if unified_build_dir else [build_dir]
+    )
     for d, prefix in [(TEST_SOURCE_DIR, 'test-%s'),
                       (VALIDATION_TEST_SOURCE_DIR, 'validation-test-%s')]:
         if is_subpath(path, d):
@@ -128,12 +126,13 @@ def main():
     parser.add_argument("--build-jobs",
                         type=int,
                         help="The number of parallel build jobs to use")
-    parser.add_argument("--target",
-                        type=argparse.types.ShellSplitType(),
-                        action=argparse.actions.AppendAction,
-                        dest="targets",
-                        help="stdlib deployment targets to test. Accept "
-                             "multiple (default: " + host_target + ")")
+    parser.add_argument(
+        "--target",
+        type=argparse.types.ShellSplitType(),
+        action=argparse.actions.AppendAction,
+        dest="targets",
+        help=f"stdlib deployment targets to test. Accept multiple (default: {host_target})",
+    )
     parser.add_argument("--filter", type=str, metavar="REGEX",
                         help="only run tests with paths matching the given "
                              "regular expression")
@@ -161,10 +160,7 @@ def main():
 
     args = parser.parse_args()
 
-    targets = args.targets
-    if not targets:
-        targets = [host_target]
-
+    targets = args.targets or [host_target]
     paths = []
 
     build_dir = args.build_dir
@@ -173,14 +169,12 @@ def main():
         # build_dir can be:
         #   build-root/  # assuming we are to test host deployment target.
         #   build-root/swift-{tool-deployment_target}/
-        for d in [
-                build_dir,
-                os.path.join(build_dir, 'swift-%s' % host_target)]:
+        for d in [build_dir, os.path.join(build_dir, f'swift-{host_target}')]:
             if is_swift_build_dir(d, args.unified):
                 build_dir = d
                 break
         else:
-            error_exit("'%s' is not a swift build directory" % args.build_dir)
+            error_exit(f"'{args.build_dir}' is not a swift build directory")
 
         # If no path given, run primary test suite.
         if not args.paths:
@@ -212,41 +206,40 @@ def main():
             else:
                 error_exit("Can't infer swift build directory")
 
-    # Ensure we have up to date test dependency
-    if args.build != 'skip' and is_build_dir_xcode(build_dir):
-        # We don't support Xcode Generator build yet.
-        print("warning: Building Xcode project is not supported yet. "
-              "Skipping...")
-        sys.stdout.flush()
+    if args.build != 'skip':
+        if is_build_dir_xcode(build_dir):
+            # We don't support Xcode Generator build yet.
+            print("warning: Building Xcode project is not supported yet. "
+                  "Skipping...")
+            sys.stdout.flush()
 
-    elif args.build != 'skip':
-        dependency_targets = ["all", "SwiftUnitTests"]
-        upload_stdlib_targets = []
-        need_validation = any('/validation-test-' in path for path in paths)
-        for target in targets:
-            if args.mode != 'only_non_executable':
-                upload_stdlib_targets += ["upload-stdlib-%s" % target]
-            if need_validation:
-                dependency_targets += ["swift-stdlib-%s" % target]
-            else:
-                dependency_targets += ["swift-test-stdlib-%s" % target]
-
-        cmake_build = ['cmake', '--build', build_dir, '--']
-        if args.build == 'verbose':
-            cmake_build += ['-v']
-
-        if args.build_jobs is not None:
-            cmake_build += ['-j%d' % args.build_jobs]
         else:
-            cmake_build += ['-j%d' % multiprocessing.cpu_count()]
+            dependency_targets = ["all", "SwiftUnitTests"]
+            upload_stdlib_targets = []
+            need_validation = any('/validation-test-' in path for path in paths)
+            for target in targets:
+                if args.mode != 'only_non_executable':
+                    upload_stdlib_targets += [f"upload-stdlib-{target}"]
+                dependency_targets += (
+                    [f"swift-stdlib-{target}"]
+                    if need_validation
+                    else [f"swift-test-stdlib-{target}"]
+                )
+            cmake_build = ['cmake', '--build', build_dir, '--']
+            if args.build == 'verbose':
+                cmake_build += ['-v']
 
-        print("--- Building test dependencies %s ---" %
-              ', '.join(dependency_targets))
-        sys.stdout.flush()
-        shell.call(cmake_build + dependency_targets)
-        shell.call(cmake_build + upload_stdlib_targets)
-        print("--- Build finished ---")
-        sys.stdout.flush()
+            cmake_build += (
+                ['-j%d' % args.build_jobs]
+                if args.build_jobs is not None
+                else ['-j%d' % multiprocessing.cpu_count()]
+            )
+            print(f"--- Building test dependencies {', '.join(dependency_targets)} ---")
+            sys.stdout.flush()
+            shell.call(cmake_build + dependency_targets)
+            shell.call(cmake_build + upload_stdlib_targets)
+            print("--- Build finished ---")
+            sys.stdout.flush()
 
     if args.result_dir is not None:
         # Clear result directory
@@ -254,22 +247,24 @@ def main():
             shutil.rmtree(args.result_dir)
         os.makedirs(args.result_dir)
 
-    if args.verbose:
-        test_args = ["-a"]
-    else:
-        test_args = ["-sv"]
-
+    test_args = ["-a"] if args.verbose else ["-sv"]
     # Test parameters.
-    test_args += ['--param', 'swift_test_mode=%s' % args.mode,
-                  '--param', 'swift_test_subset=%s' % args.subset]
+    test_args += [
+        '--param',
+        f'swift_test_mode={args.mode}',
+        '--param',
+        f'swift_test_subset={args.subset}',
+    ]
 
     for param in args.param:
         test_args += ['--param', param]
 
     if args.result_dir:
-        test_args += ['--param', 'swift_test_results_dir=%s' % args.result_dir,
-                      '--xunit-xml-output=%s' % os.path.join(args.result_dir,
-                                                             'lit-tests.xml')]
+        test_args += [
+            '--param',
+            f'swift_test_results_dir={args.result_dir}',
+            f"--xunit-xml-output={os.path.join(args.result_dir, 'lit-tests.xml')}",
+        ]
 
     if args.filter:
         test_args += ['--filter', args.filter]

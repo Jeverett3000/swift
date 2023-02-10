@@ -26,8 +26,9 @@ def run_build_script_with_data_file(build_script, data_file, verbose=False):
         DEFAULT_PRESENTS,
         r'extra_swift_args=^Swift$;-Xfrontend\;' +
         r'-external-pass-pipeline-filename\;-Xfrontend\;%s' % data_file]
-    sys.stdout.write("Running build script with: %s..." %
-                     ' '.join(build_script_args))
+    sys.stdout.write(
+        f"Running build script with: {' '.join(build_script_args)}..."
+    )
     sys.stdout.flush()
 
     if not verbose:
@@ -74,7 +75,8 @@ def build_disable_slice_pipelines(**kwargs):
 def build_disable_individual_pass(**kwargs):
     pass_name = kwargs['pass_name']
     data_file = os.path.join(
-        kwargs['output_dir'], "%s-disabled-pass.json" % pass_name)
+        kwargs['output_dir'], f"{pass_name}-disabled-pass.json"
+    )
     with open(data_file, 'w') as f:
         f.write(subprocess.check_output(
             [kwargs['pipeline_script'], '--disable-pass', pass_name]))

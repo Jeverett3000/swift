@@ -95,12 +95,9 @@ def lower_passlist():
 
 
 def normal_passpipelines():
-    result = []
-
     x = ppipe.PassPipeline('HighLevel', {'name': 'run_n_times', 'count': 2})
     x.add_pass(ssapass_passlist('high'))
-    result.append(x)
-
+    result = [x]
     x = ppipe.PassPipeline('EarlyLoopOpt', {'name': 'run_n_times', 'count': 1})
     x.add_pass(highlevel_loopopt_passlist())
     result.append(x)

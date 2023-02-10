@@ -57,8 +57,8 @@ class QuickCheckBenchmarkDriver(perf_test_driver.BenchmarkDriver):
         p = subprocess.Popen(
             [
                 data["path"],
-                "--num-samples={}".format(data["num_samples"]),
-                "--num-iters={}".format(num_iters),
+                f'--num-samples={data["num_samples"]}',
+                f"--num-iters={num_iters}",
                 data["test_name"],
             ],
             stdout=subprocess.PIPE,
@@ -87,8 +87,8 @@ class QuickCheckBenchmarkDriver(perf_test_driver.BenchmarkDriver):
         return True
 
     def process_input(self, data):
-        test_name = "({},{})".format(data["opt"], data["test_name"])
-        print("Running {}...".format(test_name))
+        test_name = f'({data["opt"]},{data["test_name"]})'
+        print(f"Running {test_name}...")
         sys.stdout.flush()
         if self.run_test(data, data["num_iters"]) is None:
             return QuickCheckResult(test_name, success=False)

@@ -165,7 +165,7 @@ class PerformanceTestResult(object):
             json_data["samples"] = [quantiles[0]]
         else:
             json_data["quantiles"] = quantiles
-        if len(quantiles) > 0:
+        if quantiles:
             json_data["min"] = quantiles[0]
             json_data["max"] = quantiles[-1]
             json_data["median"] = quantiles[(len(quantiles) - 1) // 2]
@@ -212,7 +212,7 @@ class PerformanceTestResult(object):
         self.json_data = dict(json_data)
 
     def __repr__(self):
-        return "PerformanceTestResult(" + json.dumps(self.json_data) + ")"
+        return f"PerformanceTestResult({json.dumps(self.json_data)})"
 
     def json(self):
         """Return a single-line JSON form of this result
@@ -359,10 +359,7 @@ class PerformanceTestResult(object):
 
         TODO: delete this; it's not useful"""
         if self.num_samples == len(self.samples):
-            if len(self.samples) > 1:
-                return statistics.stdev(self.samples)
-            else:
-                return 0
+            return statistics.stdev(self.samples) if len(self.samples) > 1 else 0
         return self.json_data.get("sd")
 
     def merge(self, other):
@@ -475,13 +472,8 @@ class ResultComparison(object):
         # Indication of dubious changes: when result's MIN falls inside the
         # (MIN, MAX) interval of result they are being compared with.
         self.is_dubious = (
-            (
-                old.min_value < new.min_value
-                and new.min_value < old.max_value
-            ) or (
-                new.min_value < old.min_value
-                and old.min_value < new.max_value
-            )
+            old.min_value < new.min_value < old.max_value
+            or new.min_value < old.min_value < new.max_value
         )
 
 
@@ -532,7 +524,7 @@ class LogParser(object):
 
     @staticmethod
     def _results_from_lines(lines):
-        names = dict()
+        names = {}
         for r in LogParser().parse_results(lines):
             if r.name not in names:
                 names[r.name] = r
@@ -678,7 +670,7 @@ class ReportFormatter(object):
     def markdown(self):
         """Report results of benchmark comparisons in Markdown format."""
         return self._formatted_text(
-            label_formatter=lambda s: ("**" + s + "**"),
+            label_formatter=lambda s: f"**{s}**",
             COLUMN_SEPARATOR=" | ",
             DELIMITER_ROW=([":---"] + ["---:"] * 4),
             SEPARATOR="&nbsp; | | | | \n",
@@ -731,28 +723,28 @@ class ReportFormatter(object):
 
         def row(contents):
             return (
-                ""
-                if not contents
-                else COLUMN_SEPARATOR.join(justify_columns(contents)) + "\n"
+                COLUMN_SEPARATOR.join(justify_columns(contents)) + "\n"
+                if contents
+                else ""
             )
 
         def header(title, column_labels):
             labels = (
-                column_labels
-                if not self.single_table
-                else map(label_formatter, (title,) + column_labels[1:])
+                map(label_formatter, (title,) + column_labels[1:])
+                if self.single_table
+                else column_labels
             )
             h = (
-                ("" if not self.header_printed else SEPARATOR)
+                (SEPARATOR if self.header_printed else "")
                 + row(labels)
-                + (row(DELIMITER_ROW) if not self.header_printed else "")
+                + ("" if self.header_printed else row(DELIMITER_ROW))
             )
             if self.single_table and not self.header_printed:
                 self.header_printed = True
             return h
 
         def format_columns(r, is_strong):
-            return r if not is_strong else r[:-1] + ("**" + r[-1] + "**",)
+            return r[:-1] + (f"**{r[-1]}**", ) if is_strong else r
 
         def table(title, results, is_strong=False, is_open=False):
             if not results:
@@ -920,8 +912,7 @@ def create_report(
         "html": formatter.html,
     }
 
-    report = formats[format]()
-    return report
+    return formats[format]()
 
 
 def main():

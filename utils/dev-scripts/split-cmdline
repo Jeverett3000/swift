@@ -56,13 +56,11 @@ def main():
                 print(" " if is_arg_param else " \\\n  ", end="")
             first = False
 
-            # Expand @ option files
-            m = re.match(r"^@(\S+\.txt)$", arg)
-            if m:
-                cmd_file = m.group(1)
+            if m := re.match(r"^@(\S+\.txt)$", arg):
+                cmd_file = m[1]
                 if os.path.isfile(cmd_file):
                     with open(cmd_file) as f:
-                        for ln in f.readlines():
+                        for ln in f:
                             for name in ln.rstrip().split(";"):
                                 if name != "":
                                     print(name + " \\")
@@ -70,7 +68,7 @@ def main():
                 continue
 
             if " " in arg:
-                print('"' + arg + '"', end="")
+                print(f'"{arg}"', end="")
             else:
                 print(arg, end="")
 

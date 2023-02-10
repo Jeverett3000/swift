@@ -124,9 +124,7 @@ class GenericSpecialization(object):
         self.size += symbol.size
 
     def list_symbols(self):
-        sorted_symbols = []
-        for symbol in self.symbols:
-            sorted_symbols.append((symbol.name, symbol.size))
+        sorted_symbols = [(symbol.name, symbol.size) for symbol in self.symbols]
         sorted_symbols.sort(key=lambda entry: entry[1], reverse=True)
         for symbol in sorted_symbols:
             print("%9d %s" % (symbol[1], symbol[0]))
@@ -271,20 +269,22 @@ class Categories(object):
         )
 
     def categorize_by_name(self, symbol):
-        for c in self.category_matching:
-            if c[1].match(symbol.name):
-                return c[0]
-        return None
+        return next(
+            (c[0] for c in self.category_matching if c[1].match(symbol.name)), None
+        )
 
     def categorize_by_mangled_name(self, symbol):
-        for c in self.category_mangled_matching:
-            if c[1].match(symbol.mangled_name):
-                return c[0]
-        return None
+        return next(
+            (
+                c[0]
+                for c in self.category_mangled_matching
+                if c[1].match(symbol.mangled_name)
+            ),
+            None,
+        )
 
     def add_symbol(self, category_name, symbol):
-        existing_category = self.categories.get(category_name)
-        if existing_category:
+        if existing_category := self.categories.get(category_name):
             existing_category.add(symbol)
         else:
             new_category = Category(category_name)
@@ -310,25 +310,18 @@ class Categories(object):
 
     def is_class_type_(self, type_name, mangled_name):
         match_class_name = str(len(type_name)) + type_name + 'C'
-        if match_class_name in mangled_name:
-            return True
-        return False
+        return match_class_name in mangled_name
 
     def is_class_type(self, type_name, mangled_name):
         existing_categorization = self.is_class_type_dict.get(type_name, 3)
-        if existing_categorization == 3:
-            is_class = self.is_class_type_(type_name, mangled_name)
-            self.is_class_type_dict[type_name] = is_class
-            return is_class
-        else:
+        if existing_categorization != 3:
             return existing_categorization
+        is_class = self.is_class_type_(type_name, mangled_name)
+        self.is_class_type_dict[type_name] = is_class
+        return is_class
 
     def is_dictionary_like_type(self, type_name):
-        if 'Dictionary' in type_name:
-            return True
-        if 'Set' in type_name:
-            return True
-        return False
+        return True if 'Dictionary' in type_name else 'Set' in type_name
 
     def group_library_types(self, module, type_name, specialization, mangled_name):
         if module != 'Swift':
@@ -345,40 +338,40 @@ class Categories(object):
             return module, 'stdlib', 'foundation'
         if self.two_specialized_foundation_types_matcher3.match(specialization):
             return module, 'stdlib', 'foundation'
-        single_spec = self.single_specialized_types_matcher.match(specialization)
-        if single_spec:
+        if single_spec := self.single_specialized_types_matcher.match(
+            specialization
+        ):
             is_class = self.is_class_type(single_spec.group('type_name'), mangled_name)
             is_dict = type_name is not None and self.is_dictionary_like_type(type_name)
             if not is_dict and is_class:
                 return module, 'stdlib', 'class'
             if is_dict and is_class:
                 return module, 'stdlib', 'class(dict)'
-        stdlib_other_spec = self.stdlib_and_other_type_matcher.match(specialization)
-        if stdlib_other_spec:
-            is_class = self.is_class_type(stdlib_other_spec.group('type_name'),
-                                          mangled_name)
-            if is_class:
+        if stdlib_other_spec := self.stdlib_and_other_type_matcher.match(
+            specialization
+        ):
+            if is_class := self.is_class_type(
+                stdlib_other_spec.group('type_name'), mangled_name
+            ):
                 return module, 'stdlib', 'stdlib, class'
-        foundation_other_spec = self.foundation_and_other_type_matcher.match(
-            specialization)
-        if foundation_other_spec:
-            is_class = self.is_class_type(foundation_other_spec.group('type_name'),
-                                          mangled_name)
-            if is_class:
+        if foundation_other_spec := self.foundation_and_other_type_matcher.match(
+            specialization
+        ):
+            if is_class := self.is_class_type(
+                foundation_other_spec.group('type_name'), mangled_name
+            ):
                 return module, 'stdlib', 'foundation, class'
         return module, 'stdlib', 'other'
 
     def add_specialization(self, symbol):
-        specialization_match = self.specialization_matcher.match(symbol.name)
-        if specialization_match:
+        if specialization_match := self.specialization_matcher.match(symbol.name):
             module = specialization_match.group('module_name')
             type_name = specialization_match.group('first_type')
             specialization = specialization_match.group('spec_list')
             module, type_name, specialization = self.group_library_types(
                 module, type_name, specialization, symbol.mangled_name)
             key = GenericSpecializationGroupKey(module, type_name, specialization)
-            existing_specialization = self.specializations.get(key)
-            if existing_specialization:
+            if existing_specialization := self.specializations.get(key):
                 existing_specialization.add(symbol)
             else:
                 new_specialization = GenericSpecialization(module, type_name,
@@ -392,13 +385,7 @@ class Categories(object):
 
     def print_specializations(self):
         values = self.specializations.values()
-        sorted_specializations = []
-        for v in values:
-            sorted_specializations.append(v)
-
-        if not sorted_specializations:
-            return None
-        else:
+        if sorted_specializations := list(values):
             sorted_specializations.sort(key=lambda entry: entry.specialization)
             sorted_specializations.sort(key=lambda entry: entry.type_name)
             sorted_specializations.sort(key=lambda entry: entry.module_name)
@@ -409,7 +396,7 @@ class Categories(object):
                 if listGroupSpecializations:
                     spec.list_symbols()
             print("")
-            return None
+        return None
 
     def categorize(self, symbols):
         for sym in symbols:
@@ -441,29 +428,24 @@ class Categories(object):
         print("%60s: %8d (%6.2f%%)" % ('TOTAL', total_size, float(100)))
 
     def uncategorizedSymbols(self):
-        category = self.categories.get('Unknown')
-        if category:
+        if category := self.categories.get('Unknown'):
             return category.symbols
         return None
 
     def print_uncategorizedSymbols(self):
-        syms = self.uncategorizedSymbols()
-        if syms:
+        if syms := self.uncategorizedSymbols():
             for symbol in syms:
-                print(symbol.mangled_name + " " + symbol.name + " " +
-                      str(symbol.size))
+                print(f"{symbol.mangled_name} {symbol.name} {str(symbol.size)}")
 
     def print_category(self, category):
-        category = self.categories.get(category)
-        if category:
+        if category := self.categories.get(category):
             if category.symbols:
                 sorted_symbols = sorted(category.symbols, key=get_symbol_size)
                 for sym in sorted_symbols:
                     print('%8d %s %s' % (sym.size, sym.name, sym.mangled_name))
 
     def has_category(self, category):
-        category = self.categories.get(category)
-        if category:
+        if category := self.categories.get(category):
             if category.symbols:
                 return True
         return False
@@ -498,24 +480,18 @@ def parse_segments(path, arch):
         mangled_line = mangled_lines[current_line_number]
         current_line_number += 1
 
-        # Match a segment entry.
-        segment_match = segment_regex.match(line)
-        if segment_match:
-            new_segment = Segment(segment_match.group('name'))
+        if segment_match := segment_regex.match(line):
+            new_segment = Segment(segment_match['name'])
             segments.append(new_segment)
             continue
 
-        object_file_segment_match = object_file_segment_regex.match(line)
-        if object_file_segment_match:
+        if object_file_segment_match := object_file_segment_regex.match(line):
             new_segment = Segment("SEGMENT")
             segments.append(new_segment)
             continue
 
-        # Match a section entry.
-        section_match = section_regex.match(line)
-        if section_match:
-            new_section = Section(section_match.group('name2'),
-                                  int(section_match.group('size'), 16))
+        if section_match := section_regex.match(line):
+            new_section = Section(section_match['name2'], int(section_match['size'], 16))
             segments[-1].sections.append(new_section)
             continue
 
@@ -530,11 +506,12 @@ def parse_segments(path, arch):
             print(line)
             assert False
 
-        symbol = Symbol(symbol_match.group('name'),
-                        mangled_symbol_match.group('name'),
-                        int(symbol_match.group('size'), 16))
-        existing = symbols.get(symbol.name)
-        if existing:
+        symbol = Symbol(
+            symbol_match['name'],
+            mangled_symbol_match['name'],
+            int(symbol_match['size'], 16),
+        )
+        if existing := symbols.get(symbol.name):
             existing.size += symbol.size
         else:
             symbols[symbol.name] = symbol
@@ -548,14 +525,13 @@ def show_all(segments):
         for section in segment.sections:
             symbols = section.symbols
             for sym in symbols:
-                print(str(sym.size) + ' ' + sym.name + ' ' + sym.mangled_name)
+                print(f'{str(sym.size)} {sym.name} {sym.mangled_name}')
 
 
 def categorize(segments):
     for segment in segments:
         for section in segment.sections:
-            print('Section %52s: %8d' %
-                  (segment.name + ';' + section.name, section.size))
+            print(('Section %52s: %8d' % (f'{segment.name};{section.name}', section.size)))
             symbols = section.symbols
             categories = Categories()
             categories.categorize(symbols)
@@ -581,8 +557,7 @@ def list_category(segments, category):
             categories = Categories()
             categories.categorize(symbols)
             if categories.has_category(category):
-                print('Section %22s: %8d' %
-                      (segment.name + ';' + section.name, section.size))
+                print(('Section %22s: %8d' % (f'{segment.name};{section.name}', section.size)))
                 categories.print_category(category)
                 print('')
                 if groupSpecializations:

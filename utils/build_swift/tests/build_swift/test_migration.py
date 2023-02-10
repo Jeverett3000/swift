@@ -42,7 +42,7 @@ class TestMigrateSwiftSDKsMeta(type):
     def __new__(cls, name, bases, attrs):
         # Generate tests for migrating each Swift SDK
         for sdk_name in StdlibDeploymentTarget.get_all_migrated_sdks():
-            test_name = 'test_migrate_swift_sdk_{}'.format(sdk_name)
+            test_name = f'test_migrate_swift_sdk_{sdk_name}'
             attrs[test_name] = cls.generate_migrate_swift_sdks_test(sdk_name)
 
         return super(TestMigrateSwiftSDKsMeta, cls).__new__(
@@ -71,18 +71,18 @@ class TestMigrateSwiftSDKs(unittest.TestCase, metaclass=TestMigrateSwiftSDKsMeta
     def test_multiple_swift_sdk_flags(self):
         sdks = ['OSX', 'IOS', 'IOS_SIMULATOR']
 
-        args = [
-            '--swift-sdks=',
-            '--swift-sdks={}'.format(';'.join(sdks))
-        ]
+        args = ['--swift-sdks=', f"--swift-sdks={';'.join(sdks)}"]
 
         args = migration.migrate_swift_sdks(args)
         target_names = _get_sdk_target_names(sdks)
 
-        self.assertListEqual(args, [
-            '--stdlib-deployment-targets=',
-            '--stdlib-deployment-targets={}'.format(' '.join(target_names))
-        ])
+        self.assertListEqual(
+            args,
+            [
+                '--stdlib-deployment-targets=',
+                f"--stdlib-deployment-targets={' '.join(target_names)}",
+            ],
+        )
 
 
 # -----------------------------------------------------------------------------

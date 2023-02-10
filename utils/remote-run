@@ -29,14 +29,12 @@ class CommandRunner(object):
 
     @staticmethod
     def _dirnames(files):
-        return sorted(set(posixpath.dirname(f) for f in files))
+        return sorted({posixpath.dirname(f) for f in files})
 
     def popen(self, command, **kwargs):
         if self.verbose:
             print(' '.join(command), file=sys.stderr)
-        if self.dry_run:
-            return None
-        return subprocess.Popen(command, **kwargs)
+        return None if self.dry_run else subprocess.Popen(command, **kwargs)
 
     def mkdirs_remote(self, directories):
         if directories:
@@ -131,10 +129,10 @@ class RemoteCommandRunner(CommandRunner):
                 dest]
 
     def rsync_from_invocation(self, source, dest):
-        return self.rsync_invocation(self.remote_host + ':' + source, dest)
+        return self.rsync_invocation(f'{self.remote_host}:{source}', dest)
 
     def rsync_to_invocation(self, source, dest):
-        return self.rsync_invocation(source, self.remote_host + ':' + dest)
+        return self.rsync_invocation(source, f'{self.remote_host}:{dest}')
 
 class LocalCommandRunner(CommandRunner):
     def remote_invocation(self, command):
@@ -227,8 +225,11 @@ class ArgumentProcessor(object):
                 self.args.append(arg)
 
 def collect_remote_env(local_env=os.environ, prefix='REMOTE_RUN_CHILD_'):
-    return dict((key[len(prefix):], value)
-                for key, value in local_env.items() if key.startswith(prefix))
+    return {
+        key[len(prefix) :]: value
+        for key, value in local_env.items()
+        if key.startswith(prefix)
+    }
 
 def main():
     parser = argparse.ArgumentParser()
@@ -288,7 +289,7 @@ def main():
     runner.verbose = args.verbose or args.dry_run
     runner.ignore_rsync_failure = args.ignore_rsync_failure
 
-    assert not args.remote_dir == '/'
+    assert args.remote_dir != '/'
 
     argproc = ArgumentProcessor(args.input_prefix,
                                 args.output_prefix,
@@ -305,9 +306,10 @@ def main():
     if args.output_prefix:
         runner.run_remote(['/bin/rm', '-rf', output_dir])
 
-    dirs = set()
-    for output in argproc.outputs:
-        dirs.add(posixpath.join(output_dir, posixpath.dirname(output)))
+    dirs = {
+        posixpath.join(output_dir, posixpath.dirname(output))
+        for output in argproc.outputs
+    }
     for output in argproc.nodir_outputs:
         dirs.add(posixpath.join(output_dir, posixpath.dirname(output)))
     runner.mkdirs_remote(list(dirs))

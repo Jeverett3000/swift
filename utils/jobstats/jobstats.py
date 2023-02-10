@@ -31,7 +31,7 @@ class JobData(object):
         self.jobid = jobid
         self.module = module
         self.jobargs = jobargs
-        (self.input, self.triple, self.out, self.opt) = jobargs[0:4]
+        (self.input, self.triple, self.out, self.opt) = jobargs[:4]
 
     def is_driver_job(self):
         """Return true iff self measures a driver job"""
@@ -91,10 +91,7 @@ class JobStats(JobData):
                "max": lambda a, b: max(a, b)}
         op = ops[merge_by]
         for k, v in list(self.stats.items()) + list(other.stats.items()):
-            if k in merged_stats:
-                merged_stats[k] = op(v, merged_stats[k])
-            else:
-                merged_stats[k] = v
+            merged_stats[k] = op(v, merged_stats[k]) if k in merged_stats else v
         merged_kind = self.jobkind
         if other.jobkind != merged_kind:
             merged_kind = "<merged>"
@@ -110,8 +107,7 @@ class JobStats(JobData):
                         self.jobargs + other.jobargs, merged_stats)
 
     def prefixed_by(self, prefix):
-        prefixed_stats = dict([((prefix + "." + k), v)
-                               for (k, v) in self.stats.items()])
+        prefixed_stats = dict([(f"{prefix}.{k}", v) for (k, v) in self.stats.items()])
         return JobStats(self.jobkind, random.randint(0, 1000000000),
                         self.module, self.start_usec, self.dur_usec,
                         self.jobargs, prefixed_stats)
@@ -167,31 +163,26 @@ class JobStats(JobData):
         run_info = {
             "run_order": str(args.lnt_order),
             "tag": str(args.lnt_tag),
-        }
-        run_info.update(dict(args.lnt_run_info))
+        } | args.lnt_run_info
         stats = self.stats
         return {
-            "Machine":
-            {
+            "Machine": {
                 "Name": args.lnt_machine,
-                "Info": dict(args.lnt_machine_info)
+                "Info": dict(args.lnt_machine_info),
             },
-            "Run":
-            {
+            "Run": {
                 "Start Time": self.start_timestr(),
                 "End Time": self.end_timestr(),
-                "Info": run_info
+                "Info": run_info,
             },
-            "Tests":
-            [
+            "Tests": [
                 {
                     "Data": [v],
                     "Info": {},
-                    "Name": "%s.%s.%s.%s" % (args.lnt_tag, self.module,
-                                             k, self.pick_lnt_metric_suffix(k))
+                    "Name": f"{args.lnt_tag}.{self.module}.{k}.{self.pick_lnt_metric_suffix(k)}",
                 }
                 for (k, v) in stats.items()
-            ]
+            ],
         }
 
 
@@ -216,34 +207,22 @@ PROFILEPAT = re.compile(PROFILEPATSTR)
 
 def match_auxpat(s):
     m = AUXPAT.match(s)
-    if m is not None:
-        return m.groupdict()
-    else:
-        return None
+    return m.groupdict() if m is not None else None
 
 
 def match_timerpat(s):
     m = TIMERPAT.match(s)
-    if m is not None:
-        return m.groupdict()
-    else:
-        return None
+    return m.groupdict() if m is not None else None
 
 
 def match_filepat(s):
     m = FILEPAT.match(s)
-    if m is not None:
-        return m.groupdict()
-    else:
-        return None
+    return m.groupdict() if m is not None else None
 
 
 def match_profilepat(s):
     m = PROFILEPAT.match(s)
-    if m is not None:
-        return m.groupdict()
-    else:
-        return None
+    return m.groupdict() if m is not None else None
 
 
 def find_profiles_in(profiledir, select_stat=[]):
@@ -259,13 +238,13 @@ def find_profiles_in(profiledir, select_stat=[]):
         s = os.stat(fullpath)
         if s.st_size != 0:
             if profiles is None:
-                profiles = dict()
+                profiles = {}
             try:
                 (counter, profiletype) = os.path.splitext(profile)
                 # drop leading period from extension
                 profiletype = profiletype[1:]
                 if profiletype not in profiles:
-                    profiles[profiletype] = dict()
+                    profiles[profiletype] = {}
                 profiles[profiletype][counter] = fullpath
             except Exception:
                 pass
@@ -324,7 +303,7 @@ def load_stats_dir(path, select_module=[], select_stat=[],
             with open(p) as fp:
                 j = json.load(fp)
             dur_usec = 1
-            stats = dict()
+            stats = {}
             for (k, v) in j.items():
                 if sre.search(k) is None:
                     continue
@@ -332,14 +311,12 @@ def load_stats_dir(path, select_module=[], select_stat=[],
                     v = int(1000000.0 * float(v))
                 if k.startswith('time.') and exclude_timers:
                     continue
-                tm = match_timerpat(k)
-                if tm:
+                if tm := match_timerpat(k):
                     if tm['jobkind'] == jobkind and \
                        tm['timerkind'] == 'wall':
                         dur_usec = v
                     if merge_timers:
-                        k = "time.swift-%s.%s" % (tm['jobkind'],
-                                                  tm['timerkind'])
+                        k = f"time.swift-{tm['jobkind']}.{tm['timerkind']}"
                 stats[k] = v
 
             e = JobStats(jobkind=jobkind, jobid=jobid,
@@ -368,10 +345,5 @@ def merge_all_jobstats(jobstats, select_module=[], group_by_module=False,
             prefixed.append(groupmerge.prefixed_by(mod))
         jobstats = prefixed
     for j in jobstats:
-        if m is None:
-            m = j
-        else:
-            m = m.merged_with(j, merge_by=merge_by)
-    if m is None:
-        return m
-    return m.divided_by(divide_by)
+        m = j if m is None else m.merged_with(j, merge_by=merge_by)
+    return m if m is None else m.divided_by(divide_by)

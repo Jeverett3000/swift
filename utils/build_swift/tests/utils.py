@@ -123,8 +123,7 @@ def requires_attr(obj, attr):
         getattr(obj, attr)
         return lambda func: func
     except AttributeError:
-        return unittest.skip('Required attribute "{}" not found on {}'.format(
-            attr, obj))
+        return unittest.skip(f'Required attribute "{attr}" not found on {obj}')
 
 
 @cache_utils.cache
@@ -135,7 +134,7 @@ def requires_module(fullname):
     if _can_import(fullname):
         return lambda func: func
 
-    return unittest.skip('Unable to import "{}"'.format(fullname))
+    return unittest.skip(f'Unable to import "{fullname}"')
 
 
 @cache_utils.cache
@@ -146,8 +145,7 @@ def requires_platform(name):
     if name == platform.system():
         return lambda func: func
 
-    return unittest.skip(
-        'Required platform "{}" does not match system'.format(name))
+    return unittest.skip(f'Required platform "{name}" does not match system')
 
 
 @cache_utils.cache
@@ -162,5 +160,4 @@ def requires_python(version):
     if _PYTHON_VERSION >= version:
         return lambda func: func
 
-    return unittest.skip(
-        'Requires Python version {} or greater'.format(version))
+    return unittest.skip(f'Requires Python version {version} or greater')

@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 if len(sys.argv) < 3:
-    print('Too few args to ' + sys.argv[0])
+    print(f'Too few args to {sys.argv[0]}')
     print('Usage: symlink.py <link_points_to> <link_path> [--dir | --file]')
     sys.exit(1)
 

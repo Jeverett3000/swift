@@ -53,9 +53,9 @@ def add_function(sizes, function, start_addr, end_addr, group_by_prefix):
         if function.endswith('_merged'):
             function = function[:-7]
         for cat in categories:
-            cat_name = cat[0]
             pattern = cat[1]
             if pattern.match(function):
+                cat_name = cat[0]
                 sizes[cat_name] += size
                 return
         assert False, "function name not matching any pattern"
@@ -72,17 +72,12 @@ def read_sizes(sect_sizes, seg_sizes, file_name, function_details,
     arch = None
     arch_pattern = re.compile(r'architecture ([\S]+)')
     for architecture in architectures:
-        arch_match = arch_pattern.match(architecture)
-        if arch_match:
+        if arch_match := arch_pattern.match(architecture):
             if arch is None:
-                arch = arch_match.group(1)
+                arch = arch_match[1]
             if "arm64" in arch:
                 arch = "arm64"
-    if arch is not None:
-        cmd = ["otool", "-arch", arch]
-    else:
-        cmd = ["otool"]
-
+    cmd = ["otool", "-arch", arch] if arch is not None else ["otool"]
     if function_details:
         content = subprocess.check_output(
             cmd + [
@@ -115,9 +110,8 @@ def read_sizes(sect_sizes, seg_sizes, file_name, function_details,
     label_pattern = re.compile(r'^((\-*\[[^\]]*\])|[^\/\s]+):$')
 
     for line in content:
-        asmline_match = asmline_pattern.match(line)
-        if asmline_match:
-            addr = int(asmline_match.group(1), 16)
+        if asmline_match := asmline_pattern.match(line):
+            addr = int(asmline_match[1], 16)
             if start_addr is None:
                 start_addr = addr
             end_addr = addr
@@ -130,23 +124,23 @@ def read_sizes(sect_sizes, seg_sizes, file_name, function_details,
             seg_match = seg_pattern.match(line)
             seg_size_match = seg_size_pattern.match(line)
             if label_match:
-                func_name = label_match.group(1)
+                func_name = label_match[1]
                 add_function(sect_sizes, curr_func, start_addr,
                              end_addr, group_by_prefix)
                 curr_func = func_name
                 start_addr = None
                 end_addr = None
             elif sect_size_match and sect_name and group_by_prefix:
-                size = int(sect_size_match.group(1), 16)
+                size = int(sect_size_match[1], 16)
                 sect_sizes[sect_name] += size
             elif section_match:
-                sect_name = section_match.group(1)
+                sect_name = section_match[1]
                 if sect_name == "__textcoal_nt":
                     sect_name = "__text"
             elif seg_match:
-                seg_name = seg_match.group(1)
+                seg_name = seg_match[1]
             elif seg_size_match and seg_name and group_by_prefix:
-                seg_size = int(seg_size_match.group(1), 16)
+                seg_size = int(seg_size_match[1], 16)
                 seg_sizes[seg_name] += seg_size
 
     add_function(sect_sizes, curr_func, start_addr, end_addr, group_by_prefix)
@@ -180,15 +174,14 @@ def compare_sizes(old_sizes, new_sizes, name_key, title, total_size_key="",
                        old_size, old_size * 100.0 / old_total_size,
                        new_size, new_size * 100.0 / new_total_size,
                        perc))
+        elif csv:
+            csv.writerow([title, name_key,
+                          old_size, "",
+                          new_size, "",
+                          perc])
         else:
-            if csv:
-                csv.writerow([title, name_key,
-                              old_size, "",
-                              new_size, "",
-                              perc])
-            else:
-                print("%-26s%16s: %14d  %14d  %7s" %
-                      (title, name_key, old_size, new_size, perc))
+            print("%-26s%16s: %14d  %14d  %7s" %
+                  (title, name_key, old_size, new_size, perc))
 
 
 def compare_sizes_of_file(old_files, new_files, all_sections, all_segments,
@@ -209,8 +202,8 @@ def compare_sizes_of_file(old_files, new_files, all_sections, all_segments,
         old_base = os.path.basename(old_files[0])
         new_base = os.path.basename(new_files[0])
         title = old_base
-        if old_base != new_base:
-            title += "-" + new_base
+        if title != new_base:
+            title += f"-{new_base}"
     else:
         title = "old-new"
 
@@ -281,8 +274,6 @@ def compare_function_sizes(old_files, new_files, csv=None):
 
     only_in_file1size = 0
     only_in_file2size = 0
-    in_both_size = 0
-
     for func, old_size in old_sizes.items():
         new_size = new_sizes[func]
         if new_size != 0:
@@ -306,8 +297,7 @@ def compare_function_sizes(old_files, new_files, csv=None):
         else:
             print("Only in old file(s)")
             print(os.linesep.join(list_function_sizes(only_in_file1)))
-            print("Total size of functions only in old file: {}".format(
-                only_in_file1size))
+            print(f"Total size of functions only in old file: {only_in_file1size}")
             print()
 
     if only_in_file2:
@@ -319,8 +309,7 @@ def compare_function_sizes(old_files, new_files, csv=None):
         else:
             print("Only in new files(s)")
             print(os.linesep.join(list_function_sizes(only_in_file2)))
-            print("Total size of functions only in new file: {}".format(
-                only_in_file2size))
+            print(f"Total size of functions only in new file: {only_in_file2size}")
             print()
 
     if in_both:
@@ -332,6 +321,8 @@ def compare_function_sizes(old_files, new_files, csv=None):
             csv.writerow(list(header) + ["function"])
         else:
             print("%8s %8s %8s" % header)
+
+        in_both_size = 0
 
         for triple in sorted(
                 in_both,
@@ -360,11 +351,11 @@ def compare_function_sizes(old_files, new_files, csv=None):
             csv.writerow([in_both_size, size_decrease, size_increase,
                           (size_increase - size_decrease)])
         else:
-            print("Total size of functions " +
-                  "with the same size in both files: {}".format(in_both_size))
-            print("Total size of functions " +
-                  "that got smaller: {}".format(size_decrease))
-            print("Total size of functions " +
-                  "that got bigger: {}".format(size_increase))
-            print("Total size change of functions present " +
-                  "in both files: {}".format(size_increase - size_decrease))
+            print(
+                f"Total size of functions with the same size in both files: {in_both_size}"
+            )
+            print(f"Total size of functions that got smaller: {size_decrease}")
+            print(f"Total size of functions that got bigger: {size_increase}")
+            print(
+                f"Total size change of functions present in both files: {size_increase - size_decrease}"
+            )

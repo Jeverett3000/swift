@@ -69,7 +69,7 @@ SKIPPED_FRAMEWORKS = {
 def create_parser():
     script_path = os.path.dirname(sys.argv[0])
     script_path = os.path.abspath(script_path)
-    default_swift_ide_test = '%s/swift-ide-test' % (script_path)
+    default_swift_ide_test = f'{script_path}/swift-ide-test'
 
     parser = argparse.ArgumentParser(
         description="Dumps imported Swift APIs for a module or SDK",
@@ -138,7 +138,7 @@ def run_command(args):
 
 def collect_submodules(common_args, module):
     # Execute swift-ide-test to print the interface.
-    my_args = ['-module-print-submodules', '-module-to-print=%s' % (module)]
+    my_args = ['-module-print-submodules', f'-module-to-print={module}']
     (exitcode, out, _) = run_command(common_args + my_args)
     if exitcode != 0:
         print(
@@ -150,9 +150,8 @@ def collect_submodules(common_args, module):
     import_matcher = re.compile(r'.*import\s+%s\.([A-Za-z_0-9.]+)' % (module))
     submodules = set()
     for line in out.splitlines():
-        match = import_matcher.match(line)
-        if match:
-            submodules.add(match.group(1))
+        if match := import_matcher.match(line):
+            submodules.add(match[1])
 
     return sorted(list(submodules))
 
@@ -162,7 +161,7 @@ def collect_submodules(common_args, module):
 def print_command(cmd, outfile=""):
     retstr = " ".join(cmd)
     if outfile != "":
-        retstr += " > " + outfile
+        retstr += f" > {outfile}"
     print(retstr)
 
 # Dump the API for the given module.
@@ -178,13 +177,13 @@ def dump_module_api(cmd, extra_dump_args, output_dir, module, quiet, verbose):
 
     # Dump the top-level module
     if verbose:
-        print("mkdir -p %s/%s" % (output_dir, module))
-    subprocess.call(['mkdir', '-p', ('%s/%s' % (output_dir, module))])
-    output_file = '%s/%s/%s.swift' % (output_dir, module, module)
+        print(f"mkdir -p {output_dir}/{module}")
+    subprocess.call(['mkdir', '-p', f'{output_dir}/{module}'])
+    output_file = f'{output_dir}/{module}/{module}.swift'
     if not quiet:
-        print('Writing %s...' % output_file)
+        print(f'Writing {output_file}...')
 
-    top_level_cmd = cmd + extra_dump_args + ['-module-to-print=%s' % (module)]
+    top_level_cmd = cmd + extra_dump_args + [f'-module-to-print={module}']
     if verbose:
         print_command(top_level_cmd, output_file)
 
@@ -192,14 +191,13 @@ def dump_module_api(cmd, extra_dump_args, output_dir, module, quiet, verbose):
 
     # Dump each submodule.
     for submodule in submodules:
-        output_file = '%s/%s/%s.swift' % (output_dir, module, submodule)
+        output_file = f'{output_dir}/{module}/{submodule}.swift'
         if not quiet:
-            print('Writing %s...' % output_file)
+            print(f'Writing {output_file}...')
 
-        full_submodule = '%s.%s' % (module, submodule)
+        full_submodule = f'{module}.{submodule}'
         submodule_cmd = cmd + extra_dump_args
-        submodule_cmd = submodule_cmd + \
-            ['-module-to-print=%s' % (full_submodule)]
+        submodule_cmd = (submodule_cmd + [f'-module-to-print={full_submodule}'])
         if verbose:
             print_command(submodule_cmd, output_file)
 
@@ -215,9 +213,7 @@ def pretty_sdk_name(sdk):
         return 'iOS'
     if sdk.find("watchos") == 0:
         return 'watchOS'
-    if sdk.find("appletvos") == 0:
-        return 'tvOS'
-    return 'unknownOS'
+    return 'tvOS' if sdk.find("appletvos") == 0 else 'unknownOS'
 
 # Collect the set of frameworks we should dump
 
@@ -239,17 +235,17 @@ def collect_frameworks(sdk):
         return ()
     sdk_version = sdk_version.rstrip()
 
-    print('Collecting frameworks from %s %s at %s' %
-          (pretty_sdk_name(sdk), sdk_version, sdk_path))
+    print(
+        f'Collecting frameworks from {pretty_sdk_name(sdk)} {sdk_version} at {sdk_path}'
+    )
 
     # Collect all of the framework names
-    frameworks_dir = '%s/System/Library/Frameworks' % sdk_path
+    frameworks_dir = f'{sdk_path}/System/Library/Frameworks'
     framework_matcher = re.compile(r'([A-Za-z_0-9.]+)\.framework')
     frameworks = set()
     for entry in os.listdir(frameworks_dir):
-        match = framework_matcher.match(entry)
-        if match:
-            framework = match.group(1)
+        if match := framework_matcher.match(entry):
+            framework = match[1]
             if framework not in SKIPPED_FRAMEWORKS:
                 frameworks.add(framework)
 
@@ -258,7 +254,7 @@ def collect_frameworks(sdk):
 
 def get_short_sdk_name(sdk):
     matched = re.match("[a-zA-Z]+", sdk)
-    return matched.group(0)
+    return matched[0]
 
 
 def create_dump_module_api_args(cmd_common, cmd_extra_args, sdk, module,
@@ -271,14 +267,10 @@ def create_dump_module_api_args(cmd_common, cmd_extra_args, sdk, module,
     short_sdk_name = get_short_sdk_name(sdk)
 
     # Determine the default target.
-    if target:
-        sdk_target = target
-    else:
-        sdk_target = DEFAULT_TARGET_BASED_ON_SDK[short_sdk_name]
-
+    sdk_target = target or DEFAULT_TARGET_BASED_ON_SDK[short_sdk_name]
     # Determine the output idirectory
     pretty_sdk = pretty_sdk_name(short_sdk_name)
-    sdk_output_dir = '%s/%s' % (output_dir, pretty_sdk)
+    sdk_output_dir = f'{output_dir}/{pretty_sdk}'
 
     # Create the sets of arguments to dump_module_api.
     results = []
@@ -287,11 +279,10 @@ def create_dump_module_api_args(cmd_common, cmd_extra_args, sdk, module,
         results.append(
             (cmd, cmd_extra_args, sdk_output_dir, module, quiet, verbose))
     else:
-        for framework in frameworks:
-            results.append(
-                (cmd, cmd_extra_args, sdk_output_dir, framework, quiet,
-                 verbose))
-
+        results.extend(
+            (cmd, cmd_extra_args, sdk_output_dir, framework, quiet, verbose)
+            for framework in frameworks
+        )
     return results
 
 
@@ -334,11 +325,11 @@ def main():
     # Determine the set of extra arguments we'll use.
     extra_args = ['-skip-imports']
     if args.enable_experimental_concurrency:
-        extra_args = extra_args + ['-enable-experimental-concurrency']
+        extra_args += ['-enable-experimental-concurrency']
     if args.enable_experimental_string_processing:
-        extra_args = extra_args + ['-enable-experimental-string-processing']
+        extra_args += ['-enable-experimental-string-processing']
     if args.swift_version:
-        extra_args = extra_args + ['-swift-version', '%s' % args.swift_version]
+        extra_args += ['-swift-version', f'{args.swift_version}']
 
     # Create a .swift file we can feed into swift-ide-test
     subprocess.call(['touch', source_filename])

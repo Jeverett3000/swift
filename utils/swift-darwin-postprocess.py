@@ -72,10 +72,14 @@ def unrpathize(filename):
     command = ['install_name_tool']
     for line in dylibsOutput.splitlines():
         match = dylib_regex.match(line)
-        if match and match.group('filename') not in allow_list:
-            command.append('-change')
-            command.append(match.group('path'))
-            command.append('/usr/lib/swift/' + match.group('filename'))
+        if match and match['filename'] not in allow_list:
+            command.extend(
+                (
+                    '-change',
+                    match['path'],
+                    '/usr/lib/swift/' + match['filename'],
+                )
+            )
             continue
 
     # Don't run the command if we didn't find any dylibs to change:

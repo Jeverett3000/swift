@@ -275,15 +275,12 @@ class _ToggleAction(Action):
         self.off_value = off_value
 
     def __call__(self, parser, namespace, values, option_string=None):
-        if values is None:
-            values = self.on_value
-        elif values is True:
+        if values is None or values is True:
             values = self.on_value
         elif values is False:
             values = self.off_value
         else:
-            raise argparse.ArgumentTypeError(
-                '{} is not a boolean value'.format(values))
+            raise argparse.ArgumentTypeError(f'{values} is not a boolean value')
 
         for dest in self.dests:
             setattr(namespace, dest, values)
@@ -340,4 +337,4 @@ class UnsupportedAction(Action):
             parser.error(self.message)
 
         arg = option_string or str(values)
-        parser.error('unsupported argument: {}'.format(arg))
+        parser.error(f'unsupported argument: {arg}')

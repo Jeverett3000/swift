@@ -39,7 +39,7 @@ def shell(args):
 
 def rmdir(path):
     """Remove all files in the device directory at `path`."""
-    shell(['rm', '-rf', '{}/*'.format(path)])
+    shell(['rm', '-rf', f'{path}/*'])
 
 
 def push(local_paths, device_path):
@@ -99,7 +99,7 @@ def execute_on_device(executable_path, executable_arguments):
     # /data/local/tmp. `adb shell` has trouble with commands that
     # exceed a certain length, so to err on the safe side we only
     # use the first 10 characters of the UUID.
-    uuid_dir = '{}/{}'.format(DEVICE_TEMP_DIR, str(uuid.uuid4())[:10])
+    uuid_dir = f'{DEVICE_TEMP_DIR}/{str(uuid.uuid4())[:10]}'
     shell(['mkdir', '-p', uuid_dir])
 
     # `adb` can only handle commands under a certain length. That's why we
@@ -107,12 +107,14 @@ def execute_on_device(executable_path, executable_arguments):
     # least one resilience test relies on checking the executable name, so we
     # need to use the same name as the one provided.
     executable_name = os.path.basename(executable_path)
-    executable = '{}/{}'.format(uuid_dir, executable_name)
+    executable = f'{uuid_dir}/{executable_name}'
     push(executable_path, executable)
 
-    child_environment = ['{}="{}"'.format(k.replace(ENV_PREFIX, '', 1), v)
-                         for (k, v) in os.environ.items()
-                         if k.startswith(ENV_PREFIX)]
+    child_environment = [
+        f"""{k.replace(ENV_PREFIX, '', 1)}="{v}\""""
+        for (k, v) in os.environ.items()
+        if k.startswith(ENV_PREFIX)
+    ]
 
     # The executables are sometimes passed arguments, and sometimes those
     # arguments are files that have to be pushed, but also the argument values
@@ -123,8 +125,7 @@ def execute_on_device(executable_path, executable_arguments):
         # Things like `--foo=/path/to/file` or directories are not supported.
         # Relative paths from the executable to the arguments are not kept.
         if os.path.isfile(executable_argument):
-            final_path = '{}/{}'.format(uuid_dir,
-                                        os.path.basename(executable_argument))
+            final_path = f'{uuid_dir}/{os.path.basename(executable_argument)}'
             push(executable_argument, final_path)
             translated_executable_arguments.append(final_path)
         else:
@@ -133,7 +134,7 @@ def execute_on_device(executable_path, executable_arguments):
     # When running the executable on the device, we need to pass it the same
     # arguments, as well as specify the correct LD_LIBRARY_PATH. Save these
     # to a file we can easily call multiple times.
-    executable_with_args = '{}/__executable_with_args'.format(uuid_dir)
+    executable_with_args = f'{uuid_dir}/__executable_with_args'
     _create_executable_on_device(
         executable_with_args,
         'LD_LIBRARY_PATH={uuid_dir}:{tmp_dir} '
@@ -149,10 +150,10 @@ def execute_on_device(executable_path, executable_arguments):
     # named '__succeeded'. We do this because `adb shell` does not report
     # the exit code of the command it executes on the device, so instead we
     # check the '__succeeded' file for our string.
-    executable_stdout = '{}/__stdout'.format(uuid_dir)
+    executable_stdout = f'{uuid_dir}/__stdout'
     succeeded_token = 'SUCCEEDED'
-    executable_succeeded = '{}/__succeeded'.format(uuid_dir)
-    executable_piped = '{}/__executable_piped'.format(uuid_dir)
+    executable_succeeded = f'{uuid_dir}/__succeeded'
+    executable_piped = f'{uuid_dir}/__executable_piped'
     _create_executable_on_device(
         executable_piped,
         '{executable_with_args} > {executable_stdout} && '
@@ -170,7 +171,7 @@ def execute_on_device(executable_path, executable_arguments):
     stdout = shell(['cat', executable_stdout])
     exitcode = shell(['cat', executable_succeeded])
     if not exitcode.startswith(succeeded_token):
-        debug_command = '$ adb shell {}'.format(executable_with_args)
+        debug_command = f'$ adb shell {executable_with_args}'
         print('Executable exited with a non-zero code on the Android device.\n'
               'Device stdout:\n'
               '{stdout}\n'

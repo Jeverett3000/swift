@@ -125,15 +125,15 @@ class SwiftBenchHarness(object):
             self.time_limit = args.timelimit
         if args.sampletime and args.sampletime > 0:
             self.min_sample_time = args.sampletime
-        self.log("Sources: %s." % ', '.join(self.sources), 3)
-        self.log("Compiler: %s." % self.compiler, 3)
-        self.log("Opt flags: %s." % ', '.join(self.opt_flags), 3)
-        self.log("Verbosity: %s." % self.verbose_level, 3)
-        self.log("Time limit: %s." % self.time_limit, 3)
-        self.log("Min sample time: %s." % self.min_sample_time, 3)
+        self.log(f"Sources: {', '.join(self.sources)}.", 3)
+        self.log(f"Compiler: {self.compiler}.", 3)
+        self.log(f"Opt flags: {', '.join(self.opt_flags)}.", 3)
+        self.log(f"Verbosity: {self.verbose_level}.", 3)
+        self.log(f"Time limit: {self.time_limit}.", 3)
+        self.log(f"Min sample time: {self.min_sample_time}.", 3)
 
     def process_source(self, name):
-        self.log("Processing source file: %s." % name, 2)
+        self.log(f"Processing source file: {name}.", 2)
 
         header = """
 @_silgen_name("mach_absolute_time") func __mach_absolute_time__() -> UInt64
@@ -202,16 +202,13 @@ main()
                 output += into_bench
                 continue
 
-            m = BENCH_RE.match(l)
-            if m:
+            if m := BENCH_RE.match(l):
                 output += before_bench
                 output += l
                 bench_name = m.group(1)
                 self.log("Benchmark found: %s (line %d)" %
                          (bench_name, lineno), 3)
-                self.tests[
-                    name + ":" +
-                    bench_name] = Test(bench_name, name, "", "")
+                self.tests[f"{name}:{bench_name}"] = Test(bench_name, name, "", "")
                 test_names.append(bench_name)
                 if m.group(2):
                     output += into_bench
@@ -223,15 +220,15 @@ main()
         output += main_begin
         for n in test_names:
             output += main_body % (n, n)
-        processed_name = 'processed_' + os.path.basename(name)
+        processed_name = f'processed_{os.path.basename(name)}'
         output += main_end
         with open(processed_name, 'w') as f:
             f.write(output)
         for n in test_names:
-            self.tests[name + ":" + n].processed_source = processed_name
+            self.tests[f"{name}:{n}"].processed_source = processed_name
 
     def process_sources(self):
-        self.log("Processing sources: %s." % self.sources, 2)
+        self.log(f"Processing sources: {self.sources}.", 2)
         for s in self.sources:
             self.process_source(s)
 
@@ -252,23 +249,30 @@ extern "C" int64_t opaqueGetInt64(int64_t x) { return x; }
 
     def compile_source(self, name):
         self.tests[name].binary = "./" + \
-            self.tests[name].processed_source.split(os.extsep)[0]
-        if not self.tests[name].processed_source in self.compiled_files:
+                self.tests[name].processed_source.split(os.extsep)[0]
+        if self.tests[name].processed_source not in self.compiled_files:
             try:
-                self.run_command([
-                    self.compiler,
-                    self.tests[name].processed_source,
-                    "-o",
-                    self.tests[name].binary + '.o',
-                    '-c'
-                ] + self.opt_flags)
-                self.run_command([
-                    self.compiler,
-                    '-o',
-                    self.tests[name].binary,
-                    self.tests[name].binary + '.o',
-                    'opaque.o'
-                ])
+                self.run_command(
+                    (
+                        [
+                            self.compiler,
+                            self.tests[name].processed_source,
+                            "-o",
+                            f'{self.tests[name].binary}.o',
+                            '-c',
+                        ]
+                        + self.opt_flags
+                    )
+                )
+                self.run_command(
+                    [
+                        self.compiler,
+                        '-o',
+                        self.tests[name].binary,
+                        f'{self.tests[name].binary}.o',
+                        'opaque.o',
+                    ]
+                )
                 self.compiled_files[
                     self.tests[name].processed_source] = ('', '')
             except subprocess.CalledProcessError as e:
@@ -297,9 +301,7 @@ extern "C" int64_t opaqueGetInt64(int64_t x) { return x; }
         # where NNN - performed iterations number, MMM - execution time (in ns)
         results_re = re.compile(r"(\w+),[ \t]*(\d+),[ \t]*(\d+)")
         m = results_re.match(res)
-        if not m:
-            return ("", 0, 0)
-        return (m.group(1), m.group(2), m.group(3))
+        return (m[1], m[2], m[3]) if m else ("", 0, 0)
 
     def compute_iters_number(self, name):
         scale = 1
@@ -336,7 +338,7 @@ extern "C" int64_t opaqueGetInt64(int64_t x) { return x; }
         return (samples, scale)
 
     def run_bench(self, name):
-        if not self.tests[name].status == "":
+        if self.tests[name].status != "":
             return
         (num_samples, iter_scale) = self.compute_iters_number(name)
         if (num_samples, iter_scale) == (0, 0):
@@ -347,12 +349,12 @@ extern "C" int64_t opaqueGetInt64(int64_t x) { return x; }
             return
         samples = []
         self.log("Running bench: %s, numsamples: %d" % (name, num_samples), 2)
-        for _ in range(0, num_samples):
+        for _ in range(num_samples):
             try:
                 r = self.run_command([self.tests[name].binary, str(iter_scale),
                                       self.tests[name].name])
                 (test_name, iters_computed, exec_time) = \
-                    self.parse_benchmark_output(r)
+                        self.parse_benchmark_output(r)
                 # TODO: Verify test_name and iters_computed
                 samples.append(int(exec_time) / iter_scale)
                 self.tests[name].output = r
@@ -382,13 +384,13 @@ class Test(object):
         self.output = None
 
     def do_print(self):
-        print("NAME: %s" % self.name)
-        print("SOURCE: %s" % self.source)
+        print(f"NAME: {self.name}")
+        print(f"SOURCE: {self.source}")
         if self.status == "":
             if self.results is not None:
                 self.results.do_print()
         else:
-            print("STATUS: %s" % self.status)
+            print(f"STATUS: {self.status}")
             print("OUTPUT:")
             print(self.output)
             print("END OF OUTPUT")

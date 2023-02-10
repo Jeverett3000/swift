@@ -17,7 +17,7 @@ import sys
 
 def main():
     if len(sys.argv) != 4:
-        print('Too few args to ' + sys.argv[0])
+        print(f'Too few args to {sys.argv[0]}')
         print('Usage: access-note-gen.py <input-file> <output-source-file> ' +
               '<output-access-notes-file>')
         sys.exit(1)
@@ -58,11 +58,11 @@ def offsetify(*offsets):
     """Sum line offsets matched by offset_re_fragment and convert them to strings
        like @+3 or @-2."""
 
-    offset = sum([int(o) for o in offsets if o is not None])
+    offset = sum(int(o) for o in offsets if o is not None)
     if offset < 0:
-        return u"@-" + str(-offset)
+        return f"@-{str(-offset)}"
     elif offset > 0:
-        return u"@+" + str(offset)
+        return f"@+{str(offset)}"
     else:
         return u""
 
@@ -72,14 +72,20 @@ def offsetify(*offsets):
 #
 
 """Matches expected-warning/note/remark and its offset."""
+
 expected_other_diag_re = re.compile(r'expected-(warning|note|remark)' +
                                     offset_re_fragment)
 
 """Matches expected-error and its offset."""
-expected_error_re = re.compile(r'expected-error' + offset_re_fragment +
-                               r'\s*(\d*\s*)\{\{' +
-                               r'([^}\\]*(?:(?:\}?\\.|\}[^}])[^}\\]*)*)' +
-                               r'\}\}')
+expected_error_re = re.compile(
+    (
+        (
+            (f'expected-error{offset_re_fragment}' + r'\s*(\d*\s*)\{\{')
+            + r'([^}\\]*(?:(?:\}?\\.|\}[^}])[^}\\]*)*)'
+        )
+        + r'\}\}'
+    )
+)
 
 """Matches the string 'marked @objc'."""
 marked_objc_re = re.compile(r'marked @objc')
@@ -92,21 +98,21 @@ def adjust_comments(offset, inserted_attr, comment_str):
     """Replace expected-errors with expected-remarks, and make other adjustments
        to diagnostics so that they reflect access notes."""
 
-    prefix = u"{{ignored access note: "
-    suffix = u"; did not implicitly add '" + inserted_attr + "' to this }}"
+    suffix = f"; did not implicitly add '{inserted_attr}" + "' to this }}"
 
-    adjusted = expected_other_diag_re.sub(lambda m: u"expected-" + m.group(1) +
-                                                    offsetify(offset, m.group(2)),
-                                          comment_str)
-    adjusted = expected_error_re.sub(lambda m: u"expected-remark" +
-                                               offsetify(offset, m.group(1)) + " " +
-                                               m.group(2) + prefix + m.group(3) +
-                                               suffix,
-                                     adjusted)
+    adjusted = expected_other_diag_re.sub(
+        lambda m: f"expected-{m.group(1)}{offsetify(offset, m.group(2))}",
+        comment_str,
+    )
+    prefix = u"{{ignored access note: "
+    adjusted = expected_error_re.sub(
+        lambda m: f"expected-remark{offsetify(offset, m.group(1))} {m.group(2)}{prefix}{m.group(3)}{suffix}",
+        adjusted,
+    )
     adjusted = marked_objc_re.sub(u"marked @objc by an access note", adjusted)
     adjusted = fixit_re.sub(u"{{none}}", adjusted)
 
-    return u"// [expectations adjusted] " + adjusted
+    return f"// [expectations adjusted] {adjusted}"
 
 
 #
@@ -133,10 +139,11 @@ def move_at_objc_to_access_note(access_notes_file, arg, maybe_bad, offset,
 
     inserted_attr = u"@objc"
     if arg:
-        inserted_attr += u"(" + arg + u")"
+        inserted_attr += f"({arg})"
 
-    replacement = u"// access-note-adjust" + offsetify(offset) + \
-                  u"{{" + inserted_attr + "}} [attr moved] "
+    replacement = (
+        (f"// access-note-adjust{offsetify(offset)}" + u"{{") + inserted_attr
+    ) + "}} [attr moved] "
 
     if not is_bad:
         replacement += u"expected-remark{{implicitly added '" + inserted_attr + \

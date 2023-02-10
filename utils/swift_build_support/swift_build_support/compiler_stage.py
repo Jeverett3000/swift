@@ -22,14 +22,12 @@ class StageArgs(object):
         return self.__dict__['postfix']
 
     def __getattr__(self, key):
-        real_key = '{}{}'.format(key, self._get_stage_prefix())
+        real_key = f'{key}{self._get_stage_prefix()}'
         args = self.__dict__['args']
-        if not hasattr(args, real_key):
-            return None
-        return getattr(args, real_key)
+        return getattr(args, real_key) if hasattr(args, real_key) else None
 
     def __setattr__(self, key, value):
-        real_key = '{}{}'.format(key, self._get_stage_prefix())
+        real_key = f'{key}{self._get_stage_prefix()}'
         args = self.__dict__['args']
         setattr(args, real_key, value)
 
