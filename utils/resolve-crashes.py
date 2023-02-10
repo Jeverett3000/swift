@@ -22,32 +22,30 @@ regex = re.compile(
 
 # Take the output of lit as standard input.
 for line in sys.stdin:
-    match = regex.match(line)
-    if match:
-        suffix = match.group(2)
-        filename = match.group(3)
+    if match := regex.match(line):
+        suffix = match[2]
+        filename = match[3]
 
         # Move the test over to the fixed suite.
-        from_filename = 'validation-test/%s/%s' % (suffix, filename)
-        to_filename = 'validation-test/%s_fixed/%s' % (suffix, filename)
-        git_mv_cmd = 'git mv %s %s' % (from_filename, to_filename)
+        from_filename = f'validation-test/{suffix}/{filename}'
+        to_filename = f'validation-test/{suffix}_fixed/{filename}'
+        git_mv_cmd = f'git mv {from_filename} {to_filename}'
         execute_cmd(git_mv_cmd)
 
         # Replace "not --crash" with "not".
-        sed_replace_not_cmd = 'sed -e "s/not --crash/not/" -i "" %s' % (
-            to_filename)
+        sed_replace_not_cmd = f'sed -e "s/not --crash/not/" -i "" {to_filename}'
         execute_cmd(sed_replace_not_cmd)
 
         # Remove "// XFAIL: whatever" lines.
-        sed_remove_xfail_cmd = 'sed -e "s|^//.*XFAIL.*$||g" -i "" %s' % (
-            to_filename)
+        sed_remove_xfail_cmd = f'sed -e "s|^//.*XFAIL.*$||g" -i "" {to_filename}'
         execute_cmd(sed_remove_xfail_cmd)
 
         # Remove "// REQUIRES: asserts" lines.
-        sed_remove_requires_asserts_cmd = \
-            'sed -e "s|^//.*REQUIRES: asserts.*$||g" -i "" %s' % (to_filename)
+        sed_remove_requires_asserts_cmd = (
+            f'sed -e "s|^//.*REQUIRES: asserts.*$||g" -i "" {to_filename}'
+        )
         execute_cmd(sed_remove_requires_asserts_cmd)
 
         # "git add" the result.
-        git_add_cmd = 'git add %s' % (to_filename)
+        git_add_cmd = f'git add {to_filename}'
         execute_cmd(git_add_cmd)

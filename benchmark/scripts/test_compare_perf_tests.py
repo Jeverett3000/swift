@@ -386,8 +386,8 @@ class OldAndNewLog(unittest.TestCase):
         """{"number":1,"name":"AngryPhonebook","samples":[10458,12714,11000,11000]}"""
     ]
 
-    def makeResult(json_text):
-        return PerformanceTestResult(json.loads(json_text))
+    def makeResult(self):
+        return PerformanceTestResult(json.loads(self))
 
     old_results = dict(
         [
@@ -917,7 +917,7 @@ class Test_compare_perf_tests_main(OldAndNewLog, FileSystemIntegration):
         self.new_log = self.write_temp_file("new.log", self.new_log_content)
 
     def execute_main_with_format(self, report_format, test_output=False):
-        report_file = self.test_dir + "report.log"
+        report_file = f"{self.test_dir}report.log"
         args = [
             "compare_perf_tests.py",
             "--old-file",
@@ -928,7 +928,7 @@ class Test_compare_perf_tests_main(OldAndNewLog, FileSystemIntegration):
             report_format,
         ]
 
-        sys.argv = args if not test_output else args + ["--output", report_file]
+        sys.argv = args + ["--output", report_file] if test_output else args
 
         with captured_output() as (out, _):
             main()

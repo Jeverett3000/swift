@@ -45,7 +45,7 @@ def main():
     if len(sys.argv) >= 2:
         m = re.match("^-([0-9]+)$", sys.argv[1])
         if m:
-            addr_len = int(m.group(1))
+            addr_len = int(m[1])
         else:
             help()
             return
@@ -61,11 +61,9 @@ def main():
     def get_branch_addr(line):
         bm = branch_re1.match(line)
         if bm:
-            return bm.group(1)[-addr_len:]
+            return bm[1][-addr_len:]
         bm = branch_re2.match(line)
-        if bm:
-            return bm.group(1)[-addr_len:]
-        return None
+        return bm[1][-addr_len:] if bm else None
 
     def print_function():
         if not lines:
@@ -79,8 +77,8 @@ def main():
         for line in lines:
             m = inst_re.match(line)
             assert m, "non instruction line in function"
-            addr = m.group(1)[-addr_len:]
-            inst = m.group(2)
+            addr = m[1][-addr_len:]
+            inst = m[2]
             if next_is_block or addr in block_starts:
                 if prev_is_fallthrough:
                     predecessors[addr].append(block_num)
@@ -102,22 +100,20 @@ def main():
         for line in lines:
             m = inst_re.match(line)
             if m:
-                addr = m.group(1)[-addr_len:]
+                addr = m[1][-addr_len:]
                 if addr in block_starts:
-                    blockstr = "bb" + str(block_starts[addr]) + ":"
+                    blockstr = f"bb{str(block_starts[addr])}:"
                     if predecessors[addr]:
                         print(
                             blockstr + " " * (55 - len(blockstr)) + "; preds = ", end=""
                         )
-                        print(
-                            ", ".join("bb" + str(pred) for pred in predecessors[addr])
-                        )
+                        print(", ".join(f"bb{str(pred)}" for pred in predecessors[addr]))
                     else:
                         print(blockstr)
 
             br_addr = get_branch_addr(line)
             if br_addr and block_starts[br_addr] >= 0:
-                line = re.sub(r";\s<[+-].*", "; bb" + str(block_starts[br_addr]), line)
+                line = re.sub(r";\s<[+-].*", f"; bb{str(block_starts[br_addr])}", line)
 
             print(line, end="")
         print("}")

@@ -85,12 +85,13 @@ class TestPathType(unittest.TestCase):
 
         path = path_type('~/path/to/some/file.txt')
         self.assertEqual(
-            self._platform_path(self.home_dir + '/path/to/some/file.txt'),
-            path)
+            self._platform_path(f'{self.home_dir}/path/to/some/file.txt'), path
+        )
 
         path = path_type('~/path/to/some/../file.txt')
         self.assertEqual(
-            self._platform_path(self.home_dir + '/path/to/file.txt'), path)
+            self._platform_path(f'{self.home_dir}/path/to/file.txt'), path
+        )
 
     def test_assert_exists(self):
         path_type = types.PathType(assert_exists=True)

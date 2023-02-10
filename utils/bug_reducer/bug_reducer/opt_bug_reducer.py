@@ -23,8 +23,7 @@ class ReduceMiscompilingPasses(list_reducer.ListReducer):
         # broken with JUST the kept passes, discard the prefix passes.
         suffix_joined = ' '.join(suffix)
         suffix_hash = md5.md5(suffix_joined).hexdigest()
-        print("Checking to see if suffix '%s' compiles correctly" %
-              suffix_joined)
+        print(f"Checking to see if suffix '{suffix_joined}' compiles correctly")
 
         result = self.invoker.invoke_with_passlist(
             suffix,
@@ -46,7 +45,7 @@ class ReduceMiscompilingPasses(list_reducer.ListReducer):
         # first, then separately run the "kept" passes.
         prefix_joined = ' '.join(prefix)
         prefix_hash = md5.md5(prefix_joined).hexdigest()
-        print("Checking to see if '%s' compiles correctly" % prefix_joined)
+        print(f"Checking to see if '{prefix_joined}' compiles correctly")
 
         # If it is not broken with the kept passes, it's possible that the
         # prefix passes must be run before the kept passes to break it.  If
@@ -98,7 +97,7 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
     # If we succeed, there is no further work to do.
     if result['exit_code'] == 0:
         print("Does not crash on input passes!")
-        print("Base Case: {}. Passes: {}".format(filename, ' '.join(passes)))
+        print(f"Base Case: {filename}. Passes: {' '.join(passes)}")
         return True
     print("Crashes with initial pass list! First trying to reduce the pass "
           "list!")
@@ -110,9 +109,9 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
 
     cmdline = sil_opt_invoker.cmdline_with_passlist(r.target_list)
     print("*** Found miscompiling passes!")
-    print("*** Final File: %s" % sil_opt_invoker.input_file)
-    print("*** Final Passes: %s" % (' '.join(r.target_list)))
-    print("*** Repro command line: %s" % (' '.join(cmdline)))
+    print(f"*** Final File: {sil_opt_invoker.input_file}")
+    print(f"*** Final Passes: {' '.join(r.target_list)}")
+    print(f"*** Repro command line: {' '.join(cmdline)}")
     if not reduce_sil:
         return False
 
@@ -126,7 +125,7 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
     func_bug_reducer.function_bug_reducer(input_file, nm, sil_opt_invoker,
                                           sil_extract_invoker,
                                           r.target_list)
-    print("*** Final Passes: %s" % (' '.join(r.target_list)))
+    print(f"*** Final Passes: {' '.join(r.target_list)}")
     return False
 
 
@@ -141,13 +140,11 @@ def invoke_pass_bug_reducer(args):
         json_data = json.loads(subprocess.check_output(
             [tools.sil_passpipeline_dumper, '-Performance']))
         passes = sum((p[1:] for p in json_data), [])
-        passes = ['-' + x[1] for x in passes]
+        passes = [f'-{x[1]}' for x in passes]
     else:
-        passes = ['-' + x for x in args.pass_list]
+        passes = [f'-{x}' for x in args.pass_list]
 
-    extra_args = []
-    if args.extra_args is not None:
-        extra_args = args.extra_args
+    extra_args = args.extra_args if args.extra_args is not None else []
     sil_opt_invoker = swift_tools.SILOptInvoker(config, tools,
                                                 args.input_file,
                                                 extra_args)

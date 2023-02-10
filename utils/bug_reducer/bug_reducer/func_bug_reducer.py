@@ -31,8 +31,9 @@ class ReduceMiscompilingFunctions(list_reducer.ListReducer):
     # optimizer.
     def _test_funclist(self, funcs):
         funclist_hash = self.get_funclist_hash(funcs)
-        funclist_path = os.path.join(self.silextract.config.work_dir,
-                                     'func_list_' + funclist_hash)
+        funclist_path = os.path.join(
+            self.silextract.config.work_dir, f'func_list_{funclist_hash}'
+        )
         with open(funclist_path, 'w') as funclist_file:
             for f in funcs:
                 funclist_file.write(f + '\n')
@@ -42,10 +43,10 @@ class ReduceMiscompilingFunctions(list_reducer.ListReducer):
 
         # Split the module into the two halves of the program.
         (outfile_stem, outfile_invert_stem) = \
-            self.get_output_filename_stems(funclist_hash)
+                self.get_output_filename_stems(funclist_hash)
         outfile = self.silextract.get_suffixed_filename(outfile_stem)
         outfile_invert = \
-            self.silextract.get_suffixed_filename(outfile_invert_stem)
+                self.silextract.get_suffixed_filename(outfile_invert_stem)
         self.silextract.invoke_with_functions(funclist_path, outfile)
         self.silextract.invoke_with_functions(funclist_path, outfile_invert,
                                               invert=True)
@@ -54,7 +55,7 @@ class ReduceMiscompilingFunctions(list_reducer.ListReducer):
 
     def get_output_filename_stems(self, funclist_hash):
         filename_stem = funclist_hash
-        return (filename_stem, filename_stem + '_invert')
+        return filename_stem, f'{filename_stem}_invert'
 
     def get_funclist_hash(self, funcs):
         m = md5.new()
@@ -68,7 +69,7 @@ class OptimizerTester(object):
     def __init__(self, silopt, passes):
         self.silopt = silopt
         self.result = None
-        self.passes = ['-' + p for p in passes]
+        self.passes = [f'-{p}' for p in passes]
         m = md5.new()
         for p in passes:
             m.update(p)
@@ -76,8 +77,7 @@ class OptimizerTester(object):
 
     def get_filepaths(self, optstem, nooptstem):
         f = self.silopt.get_suffixed_filename
-        return (f(optstem + '_' + self.pass_hash),
-                f(nooptstem + '_' + self.pass_hash))
+        return f(f'{optstem}_{self.pass_hash}'), f(f'{nooptstem}_{self.pass_hash}')
 
     def __call__(self, filepath_to_opt, filepath_to_opt_stem,
                  filepath_to_notopt, filepath_to_notopt_stem):
@@ -109,9 +109,9 @@ def function_bug_reducer(input_file, nm, sil_opt_invoker, sil_extract_invoker,
     sil_opt_invoker.input_file = tester.result
     cmdline = sil_opt_invoker.cmdline_with_passlist(pass_list)
     print("*** Successfully Reduced file!")
-    print("*** Final File: %s" % sil_opt_invoker.input_file)
-    print("*** Final Functions: %s" % (' '.join(r.target_list)))
-    print("*** Repro command line: %s" % (' '.join(cmdline)))
+    print(f"*** Final File: {sil_opt_invoker.input_file}")
+    print(f"*** Final Functions: {' '.join(r.target_list)}")
+    print(f"*** Repro command line: {' '.join(cmdline)}")
 
 
 def invoke_function_bug_reducer(args):
@@ -133,7 +133,7 @@ list of function given a specific pass that causes the perf pipeline to crash
     result = sil_opt_invoker.invoke_with_passlist(args.pass_list, filename)
     # If we succeed, there is no further work to do.
     if result['exit_code'] == 0:
-        print("Success with PassList: %s" % (' '.join(args.pass_list)))
+        print(f"Success with PassList: {' '.join(args.pass_list)}")
         return
 
     sil_extract_invoker = swift_tools.SILFuncExtractorInvoker(config,

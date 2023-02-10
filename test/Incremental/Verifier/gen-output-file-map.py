@@ -51,9 +51,9 @@ def main(arguments):
     all_records = {}
     for (root, swift_file) in swift_files:
         file_name = os.path.splitext(swift_file)[0]
-        all_records['./' + swift_file] = {
-            'object': './' + file_name + '.o',
-            'swift-dependencies': './' + file_name + '.swiftdeps',
+        all_records[f'./{swift_file}'] = {
+            'object': f'./{file_name}.o',
+            'swift-dependencies': f'./{file_name}.swiftdeps',
         }
         response_file_contents.append(os.path.join(root, swift_file))
     all_records[""] = {
@@ -65,9 +65,9 @@ def main(arguments):
 
     if args.response_output_file is not None:
         with io.open(args.response_output_file, 'w',
-                     encoding='utf-8', newline='\n') as f:
+                             encoding='utf-8', newline='\n') as f:
             for line in response_file_contents:
-                f.write(str(line + " "))
+                f.write(str(f"{line} "))
 
 
 if __name__ == '__main__':

@@ -277,7 +277,7 @@ class TestBenchmarkDriverInitialization(unittest.TestCase):
             tests=["ignored"],
             _subprocess=self.subprocess_mock
         )
-        self.assertEqual(driver.log_file, "/path/Benchmark_Suffix-" + now + ".log")
+        self.assertEqual(driver.log_file, f"/path/Benchmark_Suffix-{now}.log")
 
         r = "/repo/"
         subprocess_mock = SubprocessMock(
@@ -298,7 +298,7 @@ class TestBenchmarkDriverInitialization(unittest.TestCase):
             _subprocess=subprocess_mock,
         )
         self.assertEqual(
-            driver.log_file, "/log/branch/Benchmark_S-" + now + "-short_hash.log"
+            driver.log_file, f"/log/branch/Benchmark_S-{now}-short_hash.log"
         )
         subprocess_mock.assert_called_all_expected()
 
@@ -444,11 +444,8 @@ class TestBenchmarkDriverRunningTests(unittest.TestCase):
         """Create log directory if it doesn't exist and write the log file."""
 
         def assert_log_written(out, log_file, content):
-            self.assertEqual(out.getvalue(), "Logging results to: " + log_file + "\n")
-            if sys.version_info < (3, 0):
-                openmode = "rU"
-            else:
-                openmode = "r"  # 'U' mode is deprecated in Python 3
+            self.assertEqual(out.getvalue(), f"Logging results to: {log_file}" + "\n")
+            openmode = "rU" if sys.version_info < (3, 0) else "r"
             with open(log_file, openmode) as f:
                 text = f.read()
             self.assertEqual(text, "formatted output\n")
@@ -571,7 +568,7 @@ class TestMarkdownReportHandler(unittest.TestCase):
 
     def record(self, level, category, msg):
         return logging.makeLogRecord(
-            {"name": "BenchmarkDoctor." + category, "levelno": level, "msg": msg}
+            {"name": f"BenchmarkDoctor.{category}", "levelno": level, "msg": msg}
         )
 
     def test_init_writes_table_header(self):
@@ -781,8 +778,8 @@ class TestBenchmarkDoctor(unittest.TestCase):
         err_msg = " name doesn't conform to benchmark naming convention."
         self.assert_contains(
             [
-                "'wrongCase'" + err_msg,
-                "'Wrong_convention'" + err_msg,
+                f"'wrongCase'{err_msg}",
+                f"'Wrong_convention'{err_msg}",
                 "'Illegal._$%[]<>{}@^()'" + err_msg,
             ],
             self.logs["error"],
@@ -841,8 +838,8 @@ class TestBenchmarkDoctor(unittest.TestCase):
         def measurements(name, runtime):
             return {
                 "name": name,
-                name + " O i1a": _PTR(min_value=runtime + 2),
-                name + " O i2a": _PTR(min_value=runtime),
+                f"{name} O i1a": _PTR(min_value=runtime + 2),
+                f"{name} O i2a": _PTR(min_value=runtime),
             }
 
         with captured_output() as (out, _):

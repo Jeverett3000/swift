@@ -147,13 +147,13 @@ class ProductPipelineListBuilder(object):
                 print("-- Build Graph Inference --")
                 print("Initial Product List:")
                 for p in enabled_pipeline:
-                    print("    {}".format(p.product_name()))
+                    print(f"    {p.product_name()}")
 
-            if len(enabled_pipeline) == 0:
+            if not enabled_pipeline:
                 continue
 
             final_schedule = \
-                build_graph.produce_scheduled_build(enabled_pipeline)[0]
+                    build_graph.produce_scheduled_build(enabled_pipeline)[0]
 
             # Go through the schedule and remove all references to products that
             # we know are associated with an earlier pipeline. If it isn't from
@@ -169,15 +169,15 @@ class ProductPipelineListBuilder(object):
                 assert gen_offset <= i
                 inferred_pipeline_list[gen_offset][index] = p
 
-        filtered_results = []
-        for pipeline in inferred_pipeline_list:
-            filtered_results.append([p for p in pipeline if p is not None])
-
+        filtered_results = [
+            [p for p in pipeline if p is not None]
+            for pipeline in inferred_pipeline_list
+        ]
         if self.args.verbose_build:
             print("Final Build Order:")
             for pipeline in filtered_results:
                 for p in pipeline:
-                    print("    {}".format(p.product_name()))
+                    print(f"    {p.product_name()}")
 
         return (filtered_results, last_impl_pipeline_index)
 

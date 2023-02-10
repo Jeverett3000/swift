@@ -6,10 +6,11 @@ import subprocess
 import sys
 import tempfile
 
-INFER_IMPORT_DIR = \
-    os.path.dirname(os.path.realpath(__file__)) + '/sdk-module-lists'
+INFER_IMPORT_DIR = (
+    f'{os.path.dirname(os.path.realpath(__file__))}/sdk-module-lists'
+)
 
-INFER_IMPORT_PATH = INFER_IMPORT_DIR + '/infer-imports.py'
+INFER_IMPORT_PATH = f'{INFER_IMPORT_DIR}/infer-imports.py'
 
 
 def printerr(message):
@@ -22,10 +23,7 @@ def fatal_error(message):
 
 
 def escapeCmdArg(arg):
-    if '"' in arg or ' ' in arg:
-        return '"%s"' % arg.replace('"', '\\"')
-    else:
-        return arg
+    return '"%s"' % arg.replace('"', '\\"') if '"' in arg or ' ' in arg else arg
 
 
 def check_call(cmd, cwd=None, env=os.environ, verbose=False, output=None):
@@ -53,17 +51,19 @@ def get_sdk_path(platform):
 
 
 def write_fixed_module(file, platform, infix, verbose):
-    common_modules_path = os.path.join(INFER_IMPORT_DIR, 'fixed-' + infix +
-                                       '-modules-common.txt')
-    platform_modules_path = os.path.join(INFER_IMPORT_DIR, 'fixed-' + infix +
-                                         '-modules-' + platform + '.txt')
+    common_modules_path = os.path.join(
+        INFER_IMPORT_DIR, f'fixed-{infix}-modules-common.txt'
+    )
+    platform_modules_path = os.path.join(
+        INFER_IMPORT_DIR, f'fixed-{infix}-modules-{platform}.txt'
+    )
     with open(common_modules_path, 'r') as extra:
         if verbose:
-            print('Including modules in: ' + common_modules_path)
+            print(f'Including modules in: {common_modules_path}')
         file.write(extra.read())
     with open(platform_modules_path, 'r') as extra:
         if verbose:
-            print('Including modules in: ' + platform_modules_path)
+            print(f'Including modules in: {platform_modules_path}')
         file.write(extra.read())
 
 
@@ -84,9 +84,7 @@ def prepare_module_list(platform, file, verbose, module_filter_flags,
 
 
 def get_api_digester_path(tool_path):
-    if tool_path:
-        return tool_path
-    return check_output(['xcrun', '--find', 'swift-api-digester'])
+    return tool_path or check_output(['xcrun', '--find', 'swift-api-digester'])
 
 
 def create_directory(path):
@@ -96,6 +94,8 @@ def create_directory(path):
 
 class DumpConfig:
     def __init__(self, tool_path, platform, platform_alias, abi, verbose):
+        self.tool_path = get_api_digester_path(tool_path)
+        self.platform = platform
         target_map = {
             'iphoneos': 'arm64-apple-ios13.0',
             'macosx': 'x86_64-apple-macosx10.15',
@@ -103,8 +103,6 @@ class DumpConfig:
             'watchos': 'armv7k-apple-watchos6.0',
             'iosmac': 'x86_64-apple-ios13.1-macabi',
         }
-        self.tool_path = get_api_digester_path(tool_path)
-        self.platform = platform
         self.target = target_map[platform]
         self.sdk = get_sdk_path(platform)
         self.inputs = []
@@ -112,26 +110,24 @@ class DumpConfig:
         self.abi = abi
         if self.platform == 'macosx':
             # We need this input search path for CreateML
-            self.inputs.extend([self.sdk + '/usr/lib/swift/'])
+            self.inputs.extend([f'{self.sdk}/usr/lib/swift/'])
         # This is where XCTest is
-        self.frameworks = [self.sdk + '/../../Library/Frameworks/']
+        self.frameworks = [f'{self.sdk}/../../Library/Frameworks/']
         if self.platform.startswith('iosmac'):
             # Catalyst modules need this extra framework dir
-            iOSSupport = self.sdk + \
-                '/System/iOSSupport/System/Library/Frameworks'
+            iOSSupport = f'{self.sdk}/System/iOSSupport/System/Library/Frameworks'
             self.frameworks.extend([iOSSupport])
         self._environ = dict(os.environ)
         self._environ['SWIFT_FORCE_MODULE_LOADING'] = 'prefer-interface'
         self.verbose = verbose
 
     def dumpZipperedContent(self, cmd, output, module):
-        dir_path = os.path.realpath(output + '/' + module)
+        dir_path = os.path.realpath(f'{output}/{module}')
         if self.abi:
             dir_path = os.path.join(dir_path, 'ABI')
         else:
             dir_path = os.path.join(dir_path, 'API')
-        file_path = os.path.realpath(dir_path + '/' + self.platform_alias +
-                                     '.json')
+        file_path = os.path.realpath(f'{dir_path}/{self.platform_alias}.json')
         create_directory(dir_path)
         current_cmd = list(cmd)
         current_cmd.extend(['-module', module])
@@ -151,7 +147,7 @@ class DumpConfig:
             cmd.extend(['-I', path])
         if self.abi:
             cmd.extend(['-abi', '-swift-only'])
-        cmd.extend(['-' + o for o in opts])
+        cmd.extend([f'-{o}' for o in opts])
         if self.verbose:
             cmd.extend(['-v'])
         if module:
@@ -176,8 +172,7 @@ class DumpConfig:
                             continue
                         self.dumpZipperedContent(cmd, output, module)
                 else:
-                    cmd.extend(['-o', output])
-                    cmd.extend(['-module-list-file', tmp.name])
+                    cmd.extend(['-o', output, '-module-list-file', tmp.name])
                     check_call(cmd, env=self._environ, verbose=self.verbose)
 
 
@@ -193,7 +188,7 @@ class DiagnoseConfig:
             cmd.extend(['-o', output])
         if self.abi:
             cmd.extend(['-abi'])
-        cmd.extend(['-' + o for o in opts])
+        cmd.extend([f'-{o}' for o in opts])
         if verbose:
             cmd.extend(['-v'])
         check_call(cmd, verbose=verbose)
@@ -315,7 +310,7 @@ A convenient wrapper for swift-api-digester.
         runner.run(opts=args.opts, before=args.dump_before,
                    after=args.dump_after, output=args.output, verbose=args.v)
     else:
-        fatal_error('Cannot recognize action: ' + args.action)
+        fatal_error(f'Cannot recognize action: {args.action}')
 
 
 if __name__ == '__main__':

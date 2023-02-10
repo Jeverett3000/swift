@@ -35,10 +35,8 @@ class CMakeProduct(product.Product):
         cmake_build.extend([self.toolchain.cmake, "--build"])
 
         # If we are verbose...
-        if self.is_verbose():
-            # And ninja, add a -v.
-            if self.args.cmake_generator == "Ninja":
-                build_args.append('-v')
+        if self.is_verbose() and self.args.cmake_generator == "Ninja":
+            build_args.append('-v')
 
         generator_output_path = ""
         if self.args.cmake_generator == "Ninja":
@@ -46,7 +44,7 @@ class CMakeProduct(product.Product):
 
         cmake_cache_path = os.path.join(self.build_dir, "CMakeCache.txt")
         if self.args.reconfigure or not os.path.isfile(cmake_cache_path) or \
-                (generator_output_path and not os.path.isfile(generator_output_path)):
+                    (generator_output_path and not os.path.isfile(generator_output_path)):
             if not os.path.exists(self.build_dir):
                 os.makedirs(self.build_dir)
 
@@ -57,12 +55,11 @@ class CMakeProduct(product.Product):
             open(os.path.join(query_dir, "codemodel-v2"), 'a').close()
             open(os.path.join(query_dir, "cache-v2"), 'a').close()
 
-            env = None
-            if self.toolchain.distcc:
-                env = {
-                    "DISTCC_HOSTS": "localhost,lzo,cpp"
-                }
-
+            env = (
+                {"DISTCC_HOSTS": "localhost,lzo,cpp"}
+                if self.toolchain.distcc
+                else None
+            )
             with shell.pushd(self.build_dir):
                 shell.call(["env"] + [self.toolchain.cmake]
                            + list(_cmake.common_options(self))
@@ -105,10 +102,8 @@ class CMakeProduct(product.Product):
             cmake_build.append(self.toolchain.distcc_pump)
 
         # If we are verbose...
-        if self.is_verbose():
-            # And ninja, add a -v.
-            if self.args.cmake_generator == "Ninja":
-                build_args.append('-v')
+        if self.is_verbose() and self.args.cmake_generator == "Ninja":
+            build_args.append('-v')
 
         cmake_args = [self.toolchain.cmake, "--build", self.build_dir,
                       "--config", build_type, "--"]
@@ -125,15 +120,15 @@ class CMakeProduct(product.Product):
         for target in results_targets:
             if target:
                 test_target = target
-                print("--- %s ---" % target)
+                print(f"--- {target} ---")
                 if test_target.startswith("check-swift") and self.args.test_paths:
-                    test_target = test_target + "-custom"
+                    test_target = f"{test_target}-custom"
 
                 # note that passing variables via test_env won't affect lit tests -
                 # lit.cfg will filter environment variables out!
                 shell.call(cmake_build + target_flag(test_target), env=test_env)
 
-                print("--- %s finished ---" % target)
+                print(f"--- {target} finished ---")
 
     def install_with_cmake(self, install_targets, install_destdir):
         assert self.toolchain.cmake is not None

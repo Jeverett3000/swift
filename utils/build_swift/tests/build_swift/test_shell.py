@@ -45,7 +45,7 @@ except ImportError:
 # -----------------------------------------------------------------------------
 # Constants
 
-_OPEN_NAME = '{}.open'.format(builtins.__name__)
+_OPEN_NAME = f'{builtins.__name__}.open'
 
 
 # -----------------------------------------------------------------------------
@@ -113,8 +113,7 @@ class TestHelpers(unittest.TestCase):
 
         shell._echo_command(test_command, mock_stream)
 
-        mock_stream.write.assert_called_with(
-            '>>> {}\n'.format(shell.quote(test_command)))
+        mock_stream.write.assert_called_with(f'>>> {shell.quote(test_command)}\n')
         assert mock_stream.flush.called
 
     @utils.requires_module('unittest.mock')
@@ -378,9 +377,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.copy(source, dest, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> cp {} {}\n'.format(source, dest))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> cp {source} {dest}\n')
 
     @utils.requires_module('unittest.mock')
     @patch('os.path.isfile', MagicMock(return_value=False))
@@ -393,9 +390,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.copy(source, dest, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> cp -R {} {}\n'.format(source, dest))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> cp -R {source} {dest}\n')
 
     # -------------------------------------------------------------------------
     # pushd
@@ -476,9 +471,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.makedirs(path, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> mkdir -p {}\n'.format(path))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> mkdir -p {path}\n')
 
     # -------------------------------------------------------------------------
     # move
@@ -517,9 +510,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.move(source, dest, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> mv {} {}\n'.format(source, dest))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> mv {source} {dest}\n')
 
     # -------------------------------------------------------------------------
     # remove
@@ -566,9 +557,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.remove(path, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> rm {}\n'.format(path))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> rm {path}\n')
 
     @utils.requires_module('unittest.mock')
     @patch('os.path.isfile', MagicMock(return_value=False))
@@ -580,9 +569,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.remove(path, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> rm -rf {}\n'.format(path))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> rm -rf {path}\n')
 
     # -------------------------------------------------------------------------
     # symlink
@@ -621,9 +608,7 @@ class TestShellUtilities(unittest.TestCase):
 
         shell.symlink(source, dest, echo=True)
 
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            '>>> ln -s {} {}\n'.format(source, dest))
+        self.assertEqual(mock_stdout.getvalue(), f'>>> ln -s {source} {dest}\n')
 
     # -------------------------------------------------------------------------
     # which

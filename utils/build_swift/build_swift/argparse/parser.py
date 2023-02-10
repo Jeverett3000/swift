@@ -51,10 +51,7 @@ class _CompoundAction(Action):
     """
 
     def __init__(self, actions, **kwargs):
-        _actions = []
-        for action in actions:
-            _actions.append(action(**kwargs))
-
+        _actions = [action(**kwargs) for action in actions]
         kwargs.setdefault('nargs', kwargs[0].nargs)
         kwargs.setdefault('metavar', kwargs[0].metavar)
         kwargs.setdefault('choices', kwargs[0].choices)
@@ -98,7 +95,7 @@ class _Builder(object):
 
         self._parser = parser
         self._current_group = self._parser
-        self._defaults = dict()
+        self._defaults = {}
 
         self.actions = _ActionContainer()
 
@@ -114,7 +111,7 @@ class _Builder(object):
                 action = action()
             _actions.append(action)
 
-        if len(_actions) == 0:
+        if not _actions:
             # Default to store action
             action = actions.StoreAction
         elif len(_actions) == 1:

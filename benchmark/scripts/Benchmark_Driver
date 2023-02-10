@@ -91,7 +91,7 @@ class BenchmarkDriver(object):
         suffix += "-"
         if hasattr(self.args, "architecture") and self.args.architecture:
             suffix += self.args.architecture
-        pattern = os.path.join(self.args.tests, "Benchmark_" + suffix + "*")
+        pattern = os.path.join(self.args.tests, f"Benchmark_{suffix}*")
         executables = []
         if hasattr(self._subprocess, "test_mode") and self._subprocess.test_mode:
             executables = [pattern]
@@ -205,10 +205,7 @@ class BenchmarkDriver(object):
         )
         output = self._invoke(cmd)
         results = self.parser.results_from_string(output)
-        if test:
-            return list(results.items())[0][1]
-        else:
-            return results
+        return list(results.items())[0][1] if test else results
 
     def _cmd_run(
         self,
@@ -265,7 +262,7 @@ class BenchmarkDriver(object):
         dir = os.path.dirname(log_file)
         if not os.path.exists(dir):
             os.makedirs(dir)
-        print("Logging results to: %s" % log_file)
+        print(f"Logging results to: {log_file}")
         with open(log_file, "w") as f:
             for r in results:
                 print(r, file=f)
@@ -520,7 +517,7 @@ class BenchmarkDoctor(object):
     @staticmethod
     def _select(measurements, num_iters=None, opt_level="O"):
         prefix = measurements["name"] + " " + opt_level
-        prefix += "" if num_iters is None else (" i" + str(num_iters))
+        prefix += "" if num_iters is None else f" i{str(num_iters)}"
         return [
             series for name, series in measurements.items() if name.startswith(prefix)
         ]
@@ -614,9 +611,9 @@ class BenchmarkDoctor(object):
     @staticmethod
     def _reasonable_setup_time(measurements):
         setup = min(
-            [result.setup or 0 for result in BenchmarkDoctor._select(measurements)]
+            result.setup or 0 for result in BenchmarkDoctor._select(measurements)
         )
-        if 200000 < setup:  # 200 ms
+        if setup > 200000:  # 200 ms
             BenchmarkDoctor.log_runtime.error(
                 "'%s' setup took at least %d μs.", measurements["name"], setup
             )
@@ -682,7 +679,7 @@ class BenchmarkDoctor(object):
             return 2
         s = 1000000 / float(runtime)  # samples for 1s run
         s = int(pow(2, round(math.log(s, 2))))  # rounding to power of 2
-        return s if s > 2 else 2  # always take at least 2 samples
+        return max(s, 2)
 
     def measure(self, benchmark):
         """Measure benchmark with varying iterations and optimization levels.
@@ -760,7 +757,7 @@ def format_name(log_path):
 
 def compare_logs(compare_script, new_log, old_log, log_dir, opt):
     """Return diff of log files at paths `new_log` and `old_log`."""
-    print("Comparing %s %s ..." % (format_name(old_log), format_name(new_log)))
+    print(f"Comparing {format_name(old_log)} {format_name(new_log)} ...")
     subprocess.call(
         [
             compare_script,
@@ -799,28 +796,28 @@ def compare(args):
     recent_logs = {}
     for branch_dir in [current_branch_dir, baseline_branch_dir]:
         for opt in ["O", "Onone"]:
-            recent_logs[os.path.basename(branch_dir) + "_" + opt] = sorted(
-                glob.glob(os.path.join(branch_dir, "Benchmark_" + opt + "-*.log")),
+            recent_logs[f"{os.path.basename(branch_dir)}_{opt}"] = sorted(
+                glob.glob(os.path.join(branch_dir, f"Benchmark_{opt}-*.log")),
                 key=os.path.getctime,
                 reverse=True,
             )
 
     if current_branch == baseline_branch:
         if (
-            len(recent_logs[baseline_branch + "_O"]) > 1
-            and len(recent_logs[baseline_branch + "_Onone"]) > 1
+            len(recent_logs[f"{baseline_branch}_O"]) > 1
+            and len(recent_logs[f"{baseline_branch}_Onone"]) > 1
         ):
             compare_logs(
                 compare_script,
-                recent_logs[baseline_branch + "_O"][0],
-                recent_logs[baseline_branch + "_O"][1],
+                recent_logs[f"{baseline_branch}_O"][0],
+                recent_logs[f"{baseline_branch}_O"][1],
                 log_dir,
                 "O",
             )
             compare_logs(
                 compare_script,
-                recent_logs[baseline_branch + "_Onone"][0],
-                recent_logs[baseline_branch + "_Onone"][1],
+                recent_logs[f"{baseline_branch}_Onone"][0],
+                recent_logs[f"{baseline_branch}_Onone"][1],
                 log_dir,
                 "Onone",
             )
@@ -834,36 +831,36 @@ def compare(args):
     else:
         # TODO: Check for outdated baseline branch log
         if (
-            len(recent_logs[current_branch + "_O"]) == 0
-            or len(recent_logs[current_branch + "_Onone"]) == 0
+            len(recent_logs[f"{current_branch}_O"]) == 0
+            or len(recent_logs[f"{current_branch}_Onone"]) == 0
         ):
             print("branch sanity failure: missing branch logs")
             return 1
 
         if (
-            len(recent_logs[current_branch + "_O"]) == 1
-            or len(recent_logs[current_branch + "_Onone"]) == 1
+            len(recent_logs[f"{current_branch}_O"]) == 1
+            or len(recent_logs[f"{current_branch}_Onone"]) == 1
         ):
             print("branch/branch comparison skipped: no previous branch logs")
         else:
             compare_logs(
                 compare_script,
-                recent_logs[current_branch + "_O"][0],
-                recent_logs[current_branch + "_O"][1],
+                recent_logs[f"{current_branch}_O"][0],
+                recent_logs[f"{current_branch}_O"][1],
                 log_dir,
                 "O",
             )
             compare_logs(
                 compare_script,
-                recent_logs[current_branch + "_Onone"][0],
-                recent_logs[current_branch + "_Onone"][1],
+                recent_logs[f"{current_branch}_Onone"][0],
+                recent_logs[f"{current_branch}_Onone"][1],
                 log_dir,
                 "Onone",
             )
 
         if (
-            len(recent_logs[baseline_branch + "_O"]) == 0
-            or len(recent_logs[baseline_branch + "_Onone"]) == 0
+            len(recent_logs[f"{baseline_branch}_O"]) == 0
+            or len(recent_logs[f"{baseline_branch}_Onone"]) == 0
         ):
             print(
                 (
@@ -874,20 +871,20 @@ def compare(args):
         else:
             compare_logs(
                 compare_script,
-                recent_logs[current_branch + "_O"][0],
-                recent_logs[baseline_branch + "_O"][0],
+                recent_logs[f"{current_branch}_O"][0],
+                recent_logs[f"{baseline_branch}_O"][0],
                 log_dir,
                 "O",
             )
             compare_logs(
                 compare_script,
-                recent_logs[current_branch + "_Onone"][0],
-                recent_logs[baseline_branch + "_Onone"][0],
+                recent_logs[f"{current_branch}_Onone"][0],
+                recent_logs[f"{baseline_branch}_Onone"][0],
                 log_dir,
                 "Onone",
             )
 
-        # TODO: Fail on large regressions
+            # TODO: Fail on large regressions
 
     return 0
 
@@ -895,7 +892,7 @@ def compare(args):
 def positive_int(value):
     """Verify the value is a positive integer."""
     ivalue = int(value)
-    if not (ivalue > 0):
+    if ivalue <= 0:
         raise ValueError
     return ivalue
 

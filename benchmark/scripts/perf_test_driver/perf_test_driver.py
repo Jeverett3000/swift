@@ -36,12 +36,8 @@ class Result(object):
 
     def get_result(self):
         if self.is_xfailed:
-            if self.status:
-                return "XFAIL"
-            return "XPASS"
-        if self.status:
-            return "FAIL"
-        return "PASS"
+            return "XFAIL" if self.status else "XPASS"
+        return "FAIL" if self.status else "PASS"
 
     def get_name(self):
         return self.name
@@ -56,23 +52,20 @@ class Result(object):
 
 
 def run_with_timeout(func, args):
-    # We timeout after 10 minutes.
-    timeout_seconds = 10 * 60
-
     # We just use this to create a timeout since we use an older python. Once
     # we update to use python >= 3.3, use the timeout API on communicate
     # instead.
     import multiprocessing.dummy
 
     fakeThreadPool = multiprocessing.dummy.Pool(1)
+    timeout_seconds = 10 * 60
     try:
         result = fakeThreadPool.apply_async(func, args=args)
         return result.get(timeout_seconds)
     except multiprocessing.TimeoutError:
         fakeThreadPool.terminate()
         raise RuntimeError(
-            "Child process aborted due to timeout. "
-            "Timeout: %s seconds" % timeout_seconds
+            f"Child process aborted due to timeout. Timeout: {timeout_seconds} seconds"
         )
 
 
@@ -81,8 +74,8 @@ def _unwrap_self(args):
 
 
 def get_benchmark_executable(binary_dir, opt_level):
-    suffix = opt_level + "-" + platform.machine() + "*"
-    pattern = os.path.join(binary_dir, "Benchmark_" + suffix)
+    suffix = f"{opt_level}-{platform.machine()}*"
+    pattern = os.path.join(binary_dir, f"Benchmark_{suffix}")
     executables = glob.glob(pattern)
     if len(executables) == 0:
         raise ValueError(
@@ -125,7 +118,7 @@ class BenchmarkDriver(object):
         raise RuntimeError("Abstract method")
 
     def run_for_opt_level(self, binary, opt_level, test_filter):
-        print("testing driver at path: %s" % binary)
+        print(f"testing driver at path: {binary}")
         names = []
         output = subprocess.check_output([binary, "--list"], universal_newlines=True)
         for line in output.split("\n")[1:]:

@@ -42,9 +42,14 @@ if '-primary-file' in sys.argv \
     depsFile = sys.argv[sys.argv.index(
         '-emit-reference-dependencies-path') + 1]
 
-    returncode = subprocess.call([sys.argv[1], "--from-yaml",
-                                  "--input-filename=" + primaryFile,
-                                  "--output-filename=" + depsFile])
+    returncode = subprocess.call(
+        [
+            sys.argv[1],
+            "--from-yaml",
+            f"--input-filename={primaryFile}",
+            f"--output-filename={depsFile}",
+        ]
+    )
     if returncode != 0:
         # If the input is not valid YAML, just copy it over verbatim;
         # we're testing a case where we produced a corrupted output file.

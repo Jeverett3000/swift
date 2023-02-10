@@ -305,7 +305,7 @@ def _sanitize_option_string(option_string):
     if len(option_string) == 2 and option_string[0] == '-':
         return option_string[1]
 
-    raise ValueError('invalid option_string format: ' + option_string)
+    raise ValueError(f'invalid option_string format: {option_string}')
 
 
 class _BaseOption(object):

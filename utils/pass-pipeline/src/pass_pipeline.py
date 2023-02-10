@@ -4,7 +4,7 @@ class Pass(object):
         self.name = name
 
     def __repr__(self):
-        return "<pass name=%s>" % self.name
+        return f"<pass name={self.name}>"
 
 
 PassListId = 0
@@ -19,7 +19,7 @@ class PassList(object):
         self.transforms = transforms
 
     def __repr__(self):
-        return "<passlist id=%s values=%s>" % (self.pass_id, self.transforms)
+        return f"<passlist id={self.pass_id} values={self.transforms}>"
 
     def __iter__(self):
         return self.transforms.__iter__()
@@ -38,8 +38,7 @@ class PassList(object):
                 result.append(transform.name)
                 continue
 
-            for child in reversed(list(transform)):
-                stack.append(child)
+            stack.extend(iter(reversed(list(transform))))
         return result
 
 
@@ -54,7 +53,7 @@ class PassPipeline(object):
         self.pass_list.add_pass(p)
 
     def __repr__(self):
-        return "<passpipeline values=%s>" % self.pass_list
+        return f"<passpipeline values={self.pass_list}>"
 
     def generate(self):
         x = [self.identifier, self.action['name'], self.action.get('count', 0)]

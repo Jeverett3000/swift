@@ -23,5 +23,5 @@ import sys
 OLD = 1390550700  # 2014-01-24T08:05:00+00:00
 for f in sys.argv[1:]:
     if os.stat(f).st_mtime != OLD:
-        print("%s is not old!" % f)
+        print(f"{f} is not old!")
         exit(1)

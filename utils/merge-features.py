@@ -55,7 +55,7 @@ def read_features(from_file, add_prefix):
         new_feature = {"name": add_prefix + feature["name"]}
 
         if "value" in feature:
-            new_feature.update({"value" : feature["value"]})
+            new_feature["value"] = feature["value"]
 
         features.append(new_feature)
     return features
@@ -71,7 +71,7 @@ def main():
         error("Must supply the same number of files and prefixes")
 
     features = []
-    for i, (f, prefix) in enumerate(zip(args.files, args.prefixes)):
+    for f, prefix in zip(args.files, args.prefixes):
         features.extend(read_features(f, prefix))
 
     data = {

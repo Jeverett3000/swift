@@ -24,17 +24,20 @@ from adb.commands import execute_on_device
 
 
 def _usage(program_name):
-    return 'usage: {} [executable_path] [executable_arguments]'.format(
-        program_name)
+    return f'usage: {program_name} [executable_path] [executable_arguments]'
 
 
 def _help(program_name):
-    return '{}\n\n'.format(_usage(program_name)) + \
-        'positional arguments:\n' + \
-        '\texecutable_path\t\tThe path to a local executable that is to ' + \
-        'be run on a connected Android device.\n' + \
-        '\texecutable_arguments\tAdditional arguments that are to be ' + \
-        'given to the executable when it is run on the device.\n'
+    return (
+        (
+            (
+                (f'{_usage(program_name)}\n\n' + 'positional arguments:\n')
+                + '\texecutable_path\t\tThe path to a local executable that is to '
+            )
+            + 'be run on a connected Android device.\n'
+        )
+        + '\texecutable_arguments\tAdditional arguments that are to be '
+    ) + 'given to the executable when it is run on the device.\n'
 
 
 def main(args=sys.argv):
@@ -57,8 +60,7 @@ def main(args=sys.argv):
         executable_path, executable_arguments = args[0], args[1:]
     except IndexError:
         print(_usage(program_name))
-        print('{}: error: argument "executable_path" is required'.format(
-            program_name))
+        print(f'{program_name}: error: argument "executable_path" is required')
         return 1
 
     return execute_on_device(executable_path, executable_arguments)

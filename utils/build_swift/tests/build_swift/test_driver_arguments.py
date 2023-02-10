@@ -42,7 +42,7 @@ def _load_all_presets(preset_files):
         if not name.startswith('mixin')
     ]
 
-    presets = dict()
+    presets = {}
     for name in preset_names:
         preset = parser.get_preset(name, vars=PRESET_DEFAULTS)
         args = migration.migrate_swift_sdks(preset.args)
@@ -61,19 +61,19 @@ class TestDriverArgumentParserMeta(type):
     def __new__(cls, name, bases, attrs):
         # Generate tests for each default value
         for dest, value in eo.EXPECTED_DEFAULTS.items():
-            test_name = 'test_default_value_{}'.format(dest)
+            test_name = f'test_default_value_{dest}'
             attrs[test_name] = cls.generate_default_value_test(dest, value)
 
         # Generate tests for each expected option
         for option in eo.EXPECTED_OPTIONS:
-            test_name = 'test_option_{}'.format(option.sanitized_string())
+            test_name = f'test_option_{option.sanitized_string()}'
             attrs[test_name] = cls.generate_option_test(option)
 
         # Generate tests for each preset
         presets = _load_all_presets(PRESETS_FILES)
 
         for name, args in presets.items():
-            test_name = 'test_preset_{}'.format(name)
+            test_name = f'test_preset_{name}'
             attrs[test_name] = cls.generate_preset_test(name, args)
 
         return super(TestDriverArgumentParserMeta, cls).__new__(
@@ -305,13 +305,12 @@ class TestDriverArgumentParserMeta(type):
             eo.IgnoreOption: lambda self: None,
         }
 
-        test_func = generate_test_funcs.get(option.__class__, None)
+        test_func = generate_test_funcs.get(option.__class__)
         if test_func is not None:
             return test_func(option)
 
         # Catch-all meaningless test
-        return lambda self: \
-            self.fail('unexpected option "{}"'.format(option.option_string))
+        return lambda self: self.fail(f'unexpected option "{option.option_string}"')
 
     @classmethod
     def generate_preset_test(cls, preset_name, preset_args):
@@ -335,8 +334,7 @@ class TestDriverArgumentParser(
         try:
             return migration.parse_args(self.parser, args)
         except (SystemExit, ValueError) as e:
-            raise ParserError('failed to parse arguments: {} {}'.format(
-                str(args), e))
+            raise ParserError(f'failed to parse arguments: {str(args)} {e}')
 
     def _check_impl_args(self, namespace):
         assert hasattr(namespace, 'build_script_impl_args')
@@ -346,8 +344,9 @@ class TestDriverArgumentParser(
                 constants.BUILD_SCRIPT_IMPL_PATH,
                 namespace.build_script_impl_args)
         except (SystemExit, ValueError) as e:
-            raise ParserError('failed to parse impl arguments: {} {}'.format(
-                str(namespace.build_script_impl_args), e))
+            raise ParserError(
+                f'failed to parse impl arguments: {str(namespace.build_script_impl_args)} {e}'
+            )
 
     def parse_args_and_unknown_args(self, args, namespace=None):
         if namespace is None:
@@ -362,8 +361,7 @@ class TestDriverArgumentParser(
                     migration._process_disambiguation_arguments(
                         namespace, unknown_args))
             except (SystemExit, argparse.ArgumentError) as e:
-                raise ParserError('failed to parse arguments: {} {}'.format(
-                    str(args), e))
+                raise ParserError(f'failed to parse arguments: {str(args)} {e}')
 
         return namespace, unknown_args
 
@@ -372,8 +370,7 @@ class TestDriverArgumentParser(
             args, namespace)
 
         if unknown_args:
-            raise ParserError('unknown arguments: {}'.format(
-                str(unknown_args)))
+            raise ParserError(f'unknown arguments: {str(unknown_args)}')
 
         return namespace
 
@@ -408,8 +405,7 @@ class TestDriverArgumentParser(
         diff = actual_options - expected_options
 
         if len(diff) > 0:
-            self.fail('non-exhaustive expected options, missing: {}'
-                      .format(diff))
+            self.fail(f'non-exhaustive expected options, missing: {diff}')
 
     def test_expected_options_have_default_values(self):
         """Test that all the options in EXPECTED_OPTIONS have an associated
@@ -431,9 +427,10 @@ class TestDriverArgumentParser(
             if option.dest not in eo.EXPECTED_DEFAULTS:
                 missing_defaults.add(option.dest)
 
-        if len(missing_defaults) > 0:
-            self.fail('non-exhaustive default values for options, missing: {}'
-                      .format(missing_defaults))
+        if missing_defaults:
+            self.fail(
+                f'non-exhaustive default values for options, missing: {missing_defaults}'
+            )
 
     # -------------------------------------------------------------------------
     # Manual option tests

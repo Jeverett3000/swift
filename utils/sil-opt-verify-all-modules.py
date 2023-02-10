@@ -53,8 +53,8 @@ def get_verify_build_dir_commands(build_dir, toolchain_name='XcodeDefault'):
 def get_verify_resource_dir_modules_commands(
         resource_dir, sil_opt, toolchain_name):
     print("================================================================")
-    print("Resource dir: " + resource_dir)
-    print("sil-opt path: " + sil_opt)
+    print(f"Resource dir: {resource_dir}")
+    print(f"sil-opt path: {sil_opt}")
 
     known_platforms = [
         ('appletvos', 'arm64', 'arm64-apple-tvos9.0'),
@@ -73,20 +73,26 @@ def get_verify_resource_dir_modules_commands(
         modules_dir = os.path.join(resource_dir, subdir, arch)
         print(modules_dir)
         modules = glob.glob(os.path.join(modules_dir, '*.swiftmodule'))
-        for module_file_name in modules:
-            if module_file_name.endswith('XCTest.swiftmodule'):
-                # FIXME: sil-opt does not have the '-F' option.
-                continue
-            commands.append([
-                'xcrun', '--toolchain', toolchain_name, '--sdk', subdir,
+        commands.extend(
+            [
+                'xcrun',
+                '--toolchain',
+                toolchain_name,
+                '--sdk',
+                subdir,
                 sil_opt,
-                '-target', triple,
-                '-resource-dir', resource_dir,
-                '-module-cache-path', module_cache_dir,
+                '-target',
+                triple,
+                '-resource-dir',
+                resource_dir,
+                '-module-cache-path',
+                module_cache_dir,
                 '-verify',
                 module_file_name,
-            ])
-
+            ]
+            for module_file_name in modules
+            if not module_file_name.endswith('XCTest.swiftmodule')
+        )
     return commands
 
 
@@ -98,7 +104,7 @@ def run_commands_in_parallel(commands):
     makefile = ".DEFAULT_GOAL := all\n"
     targets = []
     for c in commands:
-        target_name = "target" + str(len(targets))
+        target_name = f"target{len(targets)}"
         targets.append(target_name)
         makefile += target_name + ":\n"
         makefile += \
@@ -149,7 +155,7 @@ def main():
         # Find Xcode.
         swift_path = subprocess.check_output(['xcrun', '--find', 'swift'])
         xcode_path = swift_path
-        for _ in range(0, 7):
+        for _ in range(7):
             xcode_path = os.path.dirname(xcode_path)
 
         toolchains_dir = os.path.join(

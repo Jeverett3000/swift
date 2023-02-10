@@ -152,7 +152,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_find_existing_tool(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(_KNOWN_TOOL_PATH)
+            check_output.return_value = f'{_KNOWN_TOOL_PATH}\n'
 
             result = self.xcrun.find(_KNOWN_TOOL, sdk=_KNOWN_SDK)
 
@@ -197,7 +197,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_sdk_path_known_sdk(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(_KNOWN_SDK_PATH)
+            check_output.return_value = f'{_KNOWN_SDK_PATH}\n'
 
             result = self.xcrun.sdk_path(sdk=_KNOWN_SDK)
 
@@ -232,7 +232,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_sdk_version_known_sdk(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(_KNOWN_SDK_VERSION)
+            check_output.return_value = f'{_KNOWN_SDK_VERSION}\n'
 
             result = self.xcrun.sdk_version(sdk=_KNOWN_SDK)
 
@@ -267,7 +267,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_sdk_build_version_known_sdk(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(_KNOWN_SDK_BUILD_VERSION)
+            check_output.return_value = f'{_KNOWN_SDK_BUILD_VERSION}\n'
 
             result = self.xcrun.sdk_build_version(sdk=_KNOWN_SDK)
 
@@ -302,7 +302,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_path_known_sdk(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(_KNOWN_SDK_PLATFORM_PATH)
+            check_output.return_value = f'{_KNOWN_SDK_PLATFORM_PATH}\n'
 
             result = self.xcrun.sdk_platform_path(sdk=_KNOWN_SDK)
 
@@ -337,8 +337,7 @@ class TestXcrunWrapper(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_version_known_sdk(self):
         with mock.patch('build_swift.shell.check_output') as check_output:
-            check_output.return_value = '{}\n'.format(
-                _KNOWN_SDK_PLATFORM_VERSION)
+            check_output.return_value = f'{_KNOWN_SDK_PLATFORM_VERSION}\n'
 
             result = self.xcrun.sdk_platform_version(sdk=_KNOWN_SDK)
 

@@ -32,10 +32,11 @@ class _ComponentType(object):
         self.name = name
 
     def __eq__(self, other):
-        if not isinstance(other, _ComponentType):
-            return NotImplemented
-
-        return self.name == other.name
+        return (
+            self.name == other.name
+            if isinstance(other, _ComponentType)
+            else NotImplemented
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -157,7 +158,7 @@ class InvalidVersionError(Exception):
         self.version = version
 
         if msg is None:
-            msg = 'Invalid version: {}'.format(self.version)
+            msg = f'Invalid version: {self.version}'
 
         super(InvalidVersionError, self).__init__(msg)
 
@@ -181,16 +182,18 @@ class Version(object):
         self.components = _split_version(version)
 
     def __eq__(self, other):
-        if not isinstance(other, Version):
-            return NotImplemented
-
-        return self.components == other.components
+        return (
+            self.components == other.components
+            if isinstance(other, Version)
+            else NotImplemented
+        )
 
     def __lt__(self, other):
-        if not isinstance(other, Version):
-            return NotImplemented
-
-        return self.components < other.components
+        return (
+            self.components < other.components
+            if isinstance(other, Version)
+            else NotImplemented
+        )
 
     def __hash__(self):
         return hash(self.components)

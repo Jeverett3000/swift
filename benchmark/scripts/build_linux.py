@@ -30,12 +30,12 @@ def main():
     configureInvocation = [
         args.cmake_path,
         "-GNinja",
-        "-DSWIFT_EXEC={}/bin/swiftc".format(args.swift_root_dir),
-        "-DCLANG_EXEC={}".format(args.clang),
-        "-DSWIFT_LIBRARY_PATH={}/lib/swift".format(args.swift_root_dir),
-        "{}/benchmark".format(args.swift_src_dir),
+        f"-DSWIFT_EXEC={args.swift_root_dir}/bin/swiftc",
+        f"-DCLANG_EXEC={args.clang}",
+        f"-DSWIFT_LIBRARY_PATH={args.swift_root_dir}/lib/swift",
+        f"{args.swift_src_dir}/benchmark",
     ]
-    print("COMMAND: {}".format(" ".join(configureInvocation)))
+    print(f'COMMAND: {" ".join(configureInvocation)}')
     subprocess.check_call(configureInvocation)
 
     buildInvocation = [
@@ -45,7 +45,7 @@ def main():
         "--",
         "swift-benchmark-linux-x86_64",
     ]
-    print("COMMAND: {}".format(" ".join(buildInvocation)))
+    print(f'COMMAND: {" ".join(buildInvocation)}')
     subprocess.check_call(buildInvocation)
 
 

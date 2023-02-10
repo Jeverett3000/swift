@@ -61,7 +61,7 @@ class Mock(object):
         """Optionaly initialized with a list of expected calls. See expect."""
         self.calls = []
         self.expected = []
-        self.respond = dict()
+        self.respond = {}
         responses = responses or []
         for call_args, response in responses:
             self.expect(call_args, response)

@@ -300,7 +300,7 @@ class TestToggleTrueAction(unittest.TestCase):
             args = parser.parse_args(['--foo', str(value)])
             self.assertTrue(args.foo)
 
-            args = parser.parse_args(['--foo={}'.format(value)])
+            args = parser.parse_args([f'--foo={value}'])
             self.assertTrue(args.foo)
 
     def test_with_optional_false_arg(self):
@@ -311,7 +311,7 @@ class TestToggleTrueAction(unittest.TestCase):
             args = parser.parse_args(['--foo', str(value)])
             self.assertFalse(args.foo)
 
-            args = parser.parse_args(['--foo={}'.format(value)])
+            args = parser.parse_args([f'--foo={value}'])
             self.assertFalse(args.foo)
 
     def test_last_wins(self):
@@ -362,7 +362,7 @@ class TestToggleFalseAction(unittest.TestCase):
             args = parser.parse_args(['--foo', str(value)])
             self.assertFalse(args.foo)
 
-            args = parser.parse_args(['--foo={}'.format(value)])
+            args = parser.parse_args([f'--foo={value}'])
             self.assertFalse(args.foo)
 
     def test_with_optional_false_arg(self):
@@ -373,7 +373,7 @@ class TestToggleFalseAction(unittest.TestCase):
             args = parser.parse_args(['--foo', str(value)])
             self.assertTrue(args.foo)
 
-            args = parser.parse_args(['--foo={}'.format(value)])
+            args = parser.parse_args([f'--foo={value}'])
             self.assertTrue(args.foo)
 
     def test_last_wins(self):

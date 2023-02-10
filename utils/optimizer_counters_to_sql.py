@@ -63,7 +63,7 @@ class OptStatsDB(object):
             cur.execute('CREATE INDEX IF NOT EXISTS SymbolIndex '
                         'ON Counters(Symbol)')
         except lite.Error as e:
-            print('Error {}' .format(e.args[0]))
+            print(f'Error {e.args[0]}')
             sys.exit(1)
         finally:
             pass
@@ -93,8 +93,11 @@ def addStatsFromInput(inputFile, db):
         # Read next line
         # Split into segments
         segments = line.split(",")
-        if len(segments) < 6 or not (segments[0] in [
-                'module', 'function', 'function_history']):
+        if len(segments) < 6 or segments[0] not in [
+            'module',
+            'function',
+            'function_history',
+        ]:
             continue
         # Trim all values
         segments = map(str.strip, segments)
@@ -123,10 +126,7 @@ def addStatsFromInput(inputFile, db):
 
 
 def processStatsFile(filename, dbname):
-    print(
-        "Copying stats from the file '{}' into database '{}'".format(
-            filename,
-            dbname))
+    print(f"Copying stats from the file '{filename}' into database '{dbname}'")
     db = OptStatsDB(dbname)
     with open(filename, "rb") as inputFile:
         addStatsFromInput(inputFile, db)

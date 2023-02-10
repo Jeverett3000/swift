@@ -71,19 +71,13 @@ KEYGROUP = 2
 VALGROUP = 4
 
 if __name__ == "__main__":
-    data = {}
-    data["Tests"] = []
-    data["Machine"] = {}
-    data["Run"] = {}
+    data = {"Tests": [], "Machine": {}, "Run": {}}
     for line in sys.stdin:
         m = SCORERE.match(line)
         if not m:
             m = TOTALRE.match(line)
-            if not m:
-                continue
-        test = {}
-        test["Data"] = [int(m.group(VALGROUP))]
-        test["Info"] = {}
-        test["Name"] = [m.group(KEYGROUP)]
+        if not m:
+            continue
+        test = {"Data": [int(m[VALGROUP])], "Info": {}, "Name": [m[KEYGROUP]]}
         data["Tests"].append(test)
     print(json.dumps(data, sort_keys=True, indent=4))

@@ -3,8 +3,11 @@ import random
 TESTRESULT_NOFAILURE = "NoFailure"
 TESTRESULT_KEEPSUFFIX = "KeepSuffix"
 TESTRESULT_KEEPPREFIX = "KeepPrefix"
-TESTRESULTS = set([TESTRESULT_NOFAILURE, TESTRESULT_KEEPSUFFIX,
-                   TESTRESULT_KEEPPREFIX])
+TESTRESULTS = {
+    TESTRESULT_NOFAILURE,
+    TESTRESULT_KEEPSUFFIX,
+    TESTRESULT_KEEPPREFIX,
+}
 
 
 class ListReducer(object):
@@ -45,7 +48,7 @@ class ListReducer(object):
         if result == TESTRESULT_KEEPSUFFIX:
             raise RuntimeError("ListReducer internal error: Selected empty "
                                "set!")
-        raise RuntimeError('Unknown test result: %s' % result)
+        raise RuntimeError(f'Unknown test result: {result}')
 
     def _test_shuffle_slow_converging_list(self):
         if not self.shuffling_enabled or \

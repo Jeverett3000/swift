@@ -69,40 +69,37 @@ class GraphemeClusterBreakPropertyTable(UnicodeProperty):
         # Build 'self.symbolic_values' -- an array that maps numeric property
         # values to symbolic values.
         self.symbolic_values = \
-            [None] * (max(self.numeric_value_table.values()) + 1)
+                [None] * (max(self.numeric_value_table.values()) + 1)
         for k, v in self.numeric_value_table.items():
             self.symbolic_values[v] = k
 
         # Load the data file.
         with codecs.open(
-                grapheme_break_property_file_name,
-                encoding='utf-8',
-                errors='strict') as f:
+                    grapheme_break_property_file_name,
+                    encoding='utf-8',
+                    errors='strict') as f:
             for line in f:
                 # Strip comments.
                 line = re.sub('#.*', '', line)
 
-                # Single code point?
-                m = re.match('([0-9A-F]+) +; +([a-zA-Z]+) ', line)
-                if m:
-                    code_point = int(m.group(1), 16)
-                    value = m.group(2)
+                if m := re.match('([0-9A-F]+) +; +([a-zA-Z]+) ', line):
+                    code_point = int(m[1], 16)
+                    value = m[2]
                     self.property_value_ranges += \
-                        [(code_point, code_point, value)]
+                            [(code_point, code_point, value)]
                     continue
 
-                # Range of code points?
-                m = re.match(
-                    '([0-9A-F]+)..([0-9A-F]+) +; +([a-zA-Z_]+) ', line)
-                if m:
-                    start_code_point = int(m.group(1), 16)
-                    end_code_point = int(m.group(2), 16)
-                    value = m.group(3)
+                if m := re.match(
+                    '([0-9A-F]+)..([0-9A-F]+) +; +([a-zA-Z_]+) ', line
+                ):
+                    start_code_point = int(m[1], 16)
+                    end_code_point = int(m[2], 16)
+                    value = m[3]
                     self.property_value_ranges += \
-                        [(start_code_point, end_code_point, value)]
+                            [(start_code_point, end_code_point, value)]
 
         # Prepare a flat lookup table for fast access.
-        for cp in range(0, 0x110000):
+        for cp in range(0x110000):
             self.property_values[cp] = self.get_default_value()
 
         for start_code_pt, end_code_pt, val in self.property_value_ranges:
@@ -251,55 +248,59 @@ class UnicodeTrieGenerator(object):
         self.bmp_data_offset_bits = 16 - self.bmp_first_level_index_bits
 
         self.supp_data_offset_bits = \
-            21 - self.supp_first_level_index_bits - \
-            self.supp_second_level_index_bits
+                21 - self.supp_first_level_index_bits - \
+                self.supp_second_level_index_bits
 
         # The maximum value of the first level index for supp tables.  It is
         # not equal to ((1 << supp_first_level_index_bits) - 1), because
         # maximum Unicode code point value is not 2^21-1 (0x1fffff), it is
         # 0x10ffff.
         self.supp_first_level_index_max = \
-            0x10ffff >> \
-            (self.supp_second_level_index_bits + self.supp_data_offset_bits)
+                0x10ffff >> \
+                (self.supp_second_level_index_bits + self.supp_data_offset_bits)
 
         # A mapping from BMP first-level index to BMP data block index.
-        self.bmp_lookup = \
-            [i for i in range(0, 1 << self.bmp_first_level_index_bits)]
+        self.bmp_lookup = list(range(1 << self.bmp_first_level_index_bits))
 
         # An array of BMP data blocks.
         self.bmp_data = [
-            [-1 for i in range(0, 1 << self.bmp_data_offset_bits)]
-            for i in range(0, 1 << self.bmp_first_level_index_bits)
+            [-1 for _ in range(1 << self.bmp_data_offset_bits)]
+            for _ in range(1 << self.bmp_first_level_index_bits)
         ]
 
         # A mapping from supp first-level index to an index of the second-level
         # lookup table.
-        self.supp_lookup1 = \
-            [i for i in range(0, self.supp_first_level_index_max + 1)]
+        self.supp_lookup1 = list(range(self.supp_first_level_index_max + 1))
 
         # An array of second-level lookup tables.  Each second-level lookup
         # table is a mapping from a supp second-level index to supp data block
         # index.
         self.supp_lookup2 = [
-            [j for j in range(i << self.supp_second_level_index_bits,
-                              (i + 1) << self.supp_second_level_index_bits)]
-            for i in range(0, self.supp_first_level_index_max + 1)
+            list(
+                range(
+                    i << self.supp_second_level_index_bits,
+                    (i + 1) << self.supp_second_level_index_bits,
+                )
+            )
+            for i in range(self.supp_first_level_index_max + 1)
         ]
 
         # An array of supp data blocks.
         self.supp_data = [
-            [-1 for i in range(0, 1 << self.supp_data_offset_bits)]
-            for i in range(0, (self.supp_first_level_index_max + 1) *
-                           (1 << self.supp_second_level_index_bits))
+            [-1 for _ in range(1 << self.supp_data_offset_bits)]
+            for _ in range(
+                (self.supp_first_level_index_max + 1)
+                * (1 << self.supp_second_level_index_bits)
+            )
         ]
 
     def splat(self, value):
-        for i in range(0, len(self.bmp_data)):
-            for j in range(0, len(self.bmp_data[i])):
+        for i in range(len(self.bmp_data)):
+            for j in range(len(self.bmp_data[i])):
                 self.bmp_data[i][j] = value
 
-        for i in range(0, len(self.supp_data)):
-            for j in range(0, len(self.supp_data[i])):
+        for i in range(len(self.supp_data)):
+            for j in range(len(self.supp_data[i])):
                 self.supp_data[i][j] = value
 
     def set_value(self, cp, value):
@@ -332,11 +333,11 @@ class UnicodeTrieGenerator(object):
 
     def fill_from_unicode_property(self, unicode_property):
         self.splat(unicode_property.get_default_value())
-        for cp in range(0, 0x110000):
+        for cp in range(0x110000):
             self.set_value(cp, unicode_property.get_value(cp))
 
     def verify(self, unicode_property):
-        for cp in range(0, 0x110000):
+        for cp in range(0x110000):
             expected_value = unicode_property.get_value(cp)
             actual_value = self.get_value(cp)
             assert expected_value == actual_value
@@ -367,7 +368,7 @@ class UnicodeTrieGenerator(object):
                 if self.bmp_data[i] == self.bmp_data[j]:
                     self.bmp_data.pop(j)
                     self.bmp_lookup = \
-                        remap_indexes(self.bmp_lookup, old_idx=j, new_idx=i)
+                            remap_indexes(self.bmp_lookup, old_idx=j, new_idx=i)
                 else:
                     j += 1
             i += 1
@@ -381,9 +382,9 @@ class UnicodeTrieGenerator(object):
             while j < len(self.supp_data):
                 if self.supp_data[i] == self.supp_data[j]:
                     self.supp_data.pop(j)
-                    for k in range(0, len(self.supp_lookup2)):
+                    for k in range(len(self.supp_lookup2)):
                         self.supp_lookup2[k] = \
-                            remap_indexes(self.supp_lookup2[k],
+                                remap_indexes(self.supp_lookup2[k],
                                           old_idx=j, new_idx=i)
                 else:
                     j += 1
@@ -398,7 +399,7 @@ class UnicodeTrieGenerator(object):
                 if self.supp_lookup2[i] == self.supp_lookup2[j]:
                     self.supp_lookup2.pop(j)
                     self.supp_lookup1 = \
-                        remap_indexes(self.supp_lookup1, old_idx=j, new_idx=i)
+                            remap_indexes(self.supp_lookup1, old_idx=j, new_idx=i)
                 else:
                     j += 1
             i += 1
@@ -499,12 +500,7 @@ def get_extended_grapheme_cluster_rules_matrix(grapheme_cluster_break_table):
         (any_value, 'boundary', any_value),
     ]
 
-    # Expand the rules into a matrix.
-    rules_matrix = {}
-    for first in any_value:
-        rules_matrix[first] = \
-            dict.fromkeys(any_value, None)
-
+    rules_matrix = {first: dict.fromkeys(any_value, None) for first in any_value}
     # Iterate over rules in the order of increasing priority.
     for first_list, action, second_list in reversed(rules):
         for first in first_list:
@@ -523,7 +519,7 @@ def get_extended_grapheme_cluster_rules_matrix(grapheme_cluster_break_table):
         bits = [row[second] == 'no_boundary' for second in any_value]
 
         # Pack bits into an integer.
-        packed = sum([bits[i] * pow(2, i) for i in range(0, len(bits))])
+        packed = sum(bits[i] * pow(2, i) for i in range(len(bits)))
 
         result += [packed]
 

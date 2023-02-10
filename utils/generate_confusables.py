@@ -17,16 +17,17 @@ import sys
 
 
 def _usage(program_name):
-    return 'usage: {}'.format(
-        program_name)
+    return f'usage: {program_name}'
 
 
 def _help(program_name):
-    return '{}\n\n'.format(_usage(program_name)) + \
-        'This script generates include/swift/Parse/Confusables.def from ' \
-        'utils/UnicodeData/confusables.txt.\n' \
-        'The latest version of the data file can be found at ' \
+    return (
+        f'{_usage(program_name)}\n\n'
+        + 'This script generates include/swift/Parse/Confusables.def from '
+        'utils/UnicodeData/confusables.txt.\n'
+        'The latest version of the data file can be found at '
         'ftp://ftp.unicode.org/Public/security/latest/confusables.txt.'
+    )
 
 
 def main(args=sys.argv):
@@ -63,10 +64,10 @@ def main(args=sys.argv):
         for line in f:
             match = pattern.match(line)
             if match is not None:
-                confusedString = match.group(1).replace(" ", "")
-                normalString = match.group(2).replace(" ", "")
-                confusedName = match.group(3).strip().title()
-                normalName = match.group(4).strip().replace("-", " ").title()
+                confusedString = match[1].replace(" ", "")
+                normalString = match[2].replace(" ", "")
+                confusedName = match[3].strip().title()
+                normalName = match[4].strip().replace("-", " ").title()
                 for hexValue in modifiedHex:
                     if hexValue == normalString:
                         confused = hex(int(confusedString, 16))
@@ -110,9 +111,12 @@ def main(args=sys.argv):
             newExpectedName = expectedName
             if expectedName in mappings:
                 newExpectedName = mappings[expectedName]
-            f.write("CONFUSABLE(" + confused + ", " + '"' +
-                    confusedName + '"' + ", " + expected + ", " +
-                    '"' + newExpectedName + '"' + ")\n")
+            f.write(
+                (
+                    f'CONFUSABLE({confused}, "{confusedName}", {expected}, "{newExpectedName}"'
+                    + ")\n"
+                )
+            )
         f.write("\n#undef CONFUSABLE\n")
 
 

@@ -41,8 +41,8 @@ class GuardMallocBenchmarkDriver(perf_test_driver.BenchmarkDriver):
         return {"env": self.new_env}
 
     def process_input(self, data):
-        test_name = "({},{})".format(data["opt"], data["test_name"])
-        print("Running {}...".format(test_name))
+        test_name = f'({data["opt"]},{data["test_name"]})'
+        print(f"Running {test_name}...")
         sys.stdout.flush()
 
         p = subprocess.Popen(

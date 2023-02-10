@@ -158,11 +158,11 @@ def collect_framework_modules(sdk, xfails, sdk_relative_framework_dirs):
             if extension != ".framework":
                 continue
             module_name = os.path.basename(path_without_extension)
-            swiftmodule = os.path.join(framework_dir, entry, "Modules",
-                                       module_name + ".swiftmodule")
+            swiftmodule = os.path.join(
+                framework_dir, entry, "Modules", f"{module_name}.swiftmodule"
+            )
             if os.access(swiftmodule, os.R_OK):
-                for x in collect_slices(xfails, swiftmodule):
-                    yield x
+                yield from collect_slices(xfails, swiftmodule)
 
 
 def collect_non_framework_modules(sdk, xfails, sdk_relative_search_dirs):
@@ -170,8 +170,7 @@ def collect_non_framework_modules(sdk, xfails, sdk_relative_search_dirs):
         search_dir = os.path.join(sdk, sdk_relative_search_dir)
         for dir_path, _, file_names in os.walk(search_dir, followlinks=True):
             if os.path.splitext(dir_path)[1] == ".swiftmodule":
-                for x in collect_slices(xfails, dir_path):
-                    yield x
+                yield from collect_slices(xfails, dir_path)
             else:
                 for interface in file_names:
                     module_name, extension = os.path.splitext(interface)
@@ -191,9 +190,7 @@ def should_retry_compilation(stderr):
         return True
     if "current parser token 'include'" in stderr:
         return True
-    if "current parser token 'import'" in stderr:
-        return True
-    return False
+    return "current parser token 'import'" in stderr
 
 
 def run_with_module_cache_retry(command_args, module_cache_path, dry_run):
@@ -215,9 +212,7 @@ def run_with_module_cache_retry(command_args, module_cache_path, dry_run):
         if module_cache_path:
             shutil.rmtree(module_cache_path, ignore_errors=True)
         # If all retries fail, output information for each instance.
-        attempts_stderr += (
-            "\n*** Compilation attempt {}/{} failed with modules bugs. "
-            "Error output:\n".format(r + 1, RETRIES))
+        attempts_stderr += f"\n*** Compilation attempt {r + 1}/{RETRIES} failed with modules bugs. Error output:\n"
         attempts_stderr += stderr
         stderr = attempts_stderr
     return (status, stdout, stderr)
@@ -229,7 +224,7 @@ def log_output_to_file(content, module_name, interface_base, label, log_path):
     if not content:
         return
     make_dirs_if_needed(log_path)
-    log_name = module_name + "-" + interface_base + "-" + label + ".txt"
+    log_name = f"{module_name}-{interface_base}-{label}.txt"
     with open(os.path.join(log_path, log_name), "w") as output_file:
         output_file.write(content)
 
@@ -287,19 +282,17 @@ def process_module(module_file):
 
         command_args += ('-module-name', module_file.name, module_file.path)
 
-        output_path = os.path.join(args.output_dir,
-                                   module_file.name + ".swiftmodule")
+        output_path = os.path.join(args.output_dir, f"{module_file.name}.swiftmodule")
 
         if interface_base != module_file.name:
             make_dirs_if_needed(output_path)
-            output_path = os.path.join(output_path,
-                                       interface_base + ".swiftmodule")
+            output_path = os.path.join(output_path, f"{interface_base}.swiftmodule")
 
         command_args += ('-o', output_path)
 
         if args.verbose:
             with shared_output_lock:
-                print("# Starting " + module_file.path)
+                print(f"# Starting {module_file.path}")
                 print(' '.join(command_args))
                 sys.stdout.flush()
         status, stdout, stderr = run_with_module_cache_retry(
@@ -340,9 +333,9 @@ def process_module_files(pool, module_files):
                     print(stdout, end="")
                     print(stderr, end="", file=sys.stderr)
             elif module_file.is_expected_to_fail:
-                print("# (UPASS) " + module_file.path)
+                print(f"# (UPASS) {module_file.path}")
             elif args.verbose:
-                print("# (PASS) " + module_file.path)
+                print(f"# (PASS) {module_file.path}")
             sys.stdout.flush()
             if overall_exit_status == 0 and \
                     not module_file.is_expected_to_fail:
@@ -355,7 +348,7 @@ def getSDKVersion(sdkroot):
     with open(settingPath) as json_file:
         data = json.load(json_file)
         return data['Version']
-    fatal("Failed to get SDK version from: " + settingPath)
+    fatal(f"Failed to get SDK version from: {settingPath}")
 
 
 def copySystemVersionFile(sdkroot, output):
@@ -365,7 +358,7 @@ def copySystemVersionFile(sdkroot, output):
     try:
         copyfile(sysInfoPath, destInfoPath)
     except BaseException as e:
-        print("cannot copy from " + sysInfoPath + " to " + destInfoPath + ": " + str(e))
+        print(f"cannot copy from {sysInfoPath} to {destInfoPath}: {str(e)}")
 
 
 def main():
@@ -385,7 +378,7 @@ def main():
     if not args.sdk:
         fatal("SDKROOT must be set in the environment")
     if not os.path.isdir(args.sdk):
-        fatal("invalid SDK: " + args.sdk)
+        fatal(f"invalid SDK: {args.sdk}")
 
     # if the given output dir ends with 'prebuilt-modules', we should
     # append the SDK version number so all modules will built into

@@ -23,14 +23,13 @@ if platform.system() == 'Windows':
     GetUserNameW(buffer, ctypes.byref(size))
     # For NetworkService, Host$ is returned, so we choose have to turn it back
     # into something that icacls understands.
-    if not buffer.value.endswith('$'):
-        user_name = buffer.value
-    else:
-        user_name = 'NT AUTHORITY\\NetworkService'
-
+    user_name = (
+        'NT AUTHORITY\\NetworkService'
+        if buffer.value.endswith('$')
+        else buffer.value
+    )
     for path in sys.argv[1:]:
-        subprocess.call(['icacls', path, '/deny',
-                         '{}:(R)'.format(user_name)])
+        subprocess.call(['icacls', path, '/deny', f'{user_name}:(R)'])
 else:
     for path in sys.argv[1:]:
         subprocess.call(['chmod', 'a-r', path])

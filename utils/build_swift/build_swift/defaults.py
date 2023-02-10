@@ -89,10 +89,7 @@ def _default_llvm_lto_link_jobs():
     """
 
     memory = _system_memory()
-    if memory is None:
-        return None
-
-    return int((memory / 1000000000.0 - 3.0) / 6.0)
+    return None if memory is None else int((memory / 1000000000.0 - 3.0) / 6.0)
 
 
 def _default_swift_lto_link_jobs():
@@ -104,10 +101,7 @@ def _default_swift_lto_link_jobs():
     """
 
     memory = _system_memory()
-    if memory is None:
-        return None
-
-    return int((memory / 1000000000.0 - 3.0) / 8.0)
+    return None if memory is None else int((memory / 1000000000.0 - 3.0) / 8.0)
 
 
 LLVM_MAX_PARALLEL_LTO_LINK_JOBS = _default_llvm_lto_link_jobs()

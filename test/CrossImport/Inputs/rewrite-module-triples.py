@@ -4,13 +4,14 @@ Renames files or directories with "module-triple-here" in their names to use
 the indicated module triples instead.
 """
 
+
 import os
 import platform
 import shutil
 import sys
 
 if len(sys.argv) < 3:
-    print('Too few args to ' + sys.argv[0])
+    print(f'Too few args to {sys.argv[0]}')
     print('Usage: rewrite-module-triples.py <root-dir> <module-triple>...')
     sys.exit(1)
 

@@ -5,10 +5,7 @@ class Token(object):
 
     def __init__(self, name, kind, unprefixed_kind=None, text=None):
         self.name = name
-        if unprefixed_kind is None:
-            self.unprefixed_kind = kind
-        else:
-            self.unprefixed_kind = unprefixed_kind
+        self.unprefixed_kind = kind if unprefixed_kind is None else unprefixed_kind
         self.text = text
 
 
@@ -18,8 +15,9 @@ class Keyword(Token):
     """
 
     def __init__(self, name, text):
-        Token.__init__(self, name=name, kind='kw_' + text, unprefixed_kind=text,
-                       text=text)
+        Token.__init__(
+            self, name=name, kind=f'kw_{text}', unprefixed_kind=text, text=text
+        )
 
     def macro_name(self):
         return "KEYWORD"
@@ -59,8 +57,9 @@ class PoundKeyword(Token):
     def __init__(self, name, kind, text, name_for_diagnostics=None):
         if name_for_diagnostics is None:
             name_for_diagnostics = text
-        Token.__init__(self, name=name, kind='pound_' + kind, unprefixed_kind=kind,
-                       text=text)
+        Token.__init__(
+            self, name=name, kind=f'pound_{kind}', unprefixed_kind=kind, text=text
+        )
 
     def macro_name(self):
         return "POUND_KEYWORD"
@@ -303,4 +302,4 @@ SYNTAX_TOKENS = [
 
 ]
 
-SYNTAX_TOKEN_MAP = {token.name + 'Token': token for token in SYNTAX_TOKENS}
+SYNTAX_TOKEN_MAP = {f'{token.name}Token': token for token in SYNTAX_TOKENS}

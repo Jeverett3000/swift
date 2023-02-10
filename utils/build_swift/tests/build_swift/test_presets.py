@@ -139,7 +139,7 @@ class TestPresetParserMeta(type):
 
         # Generate tests for each preset
         for preset_name in preset_parser.preset_names:
-            test_name = 'test_get_preset_' + preset_name
+            test_name = f'test_get_preset_{preset_name}'
             attrs[test_name] = cls.generate_get_preset_test(
                 preset_parser, preset_name)
 
@@ -280,8 +280,7 @@ class TestPresetParser(unittest.TestCase, metaclass=TestPresetParserMeta):
         parser.read_string('[preset: bar]')
         parser.read_string('[preset: baz]')
 
-        self.assertEqual(set(parser.preset_names),
-                         set(['foo', 'bar', 'baz']))
+        self.assertEqual(set(parser.preset_names), {'foo', 'bar', 'baz'})
 
     def test_expand_option_name(self):
         parser = PresetParser()

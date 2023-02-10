@@ -53,7 +53,7 @@ def print_note(message, stream=sys.stdout):
     function outputs to stdout.
     """
 
-    stream.write('[{}] NOTE: {}\n'.format(sys.argv[0], message))
+    stream.write(f'[{sys.argv[0]}] NOTE: {message}\n')
     stream.flush()
 
 
@@ -62,7 +62,7 @@ def print_warning(message, stream=sys.stdout):
     to stdout.
     """
 
-    warning = "[{}] WARNING: {}\n".format(sys.argv[0], message)
+    warning = f"[{sys.argv[0]}] WARNING: {message}\n"
     magenta_warning = "\033[35m" + warning + "\033[0m"
 
     stream.write(magenta_warning)
@@ -111,9 +111,7 @@ class JSONDumper(json.JSONEncoder):
             *args, **kwargs)
 
     def default(self, o):
-        if hasattr(o, '__dict__'):
-            return vars(o)
-        return str(o)
+        return vars(o) if hasattr(o, '__dict__') else str(o)
 
 
 def print_xcodebuild_versions(file=sys.stdout):
@@ -153,7 +151,7 @@ def validate_xcode_compatibility():
               file=sys.stderr)
         return
 
-    version_match = match.group(1)
+    version_match = match[1]
     current_version = tuple(int(v) for v in version_match.replace('.', ' ').split())
     minimum_version = (13, 0)
     if current_version < minimum_version:
@@ -174,7 +172,7 @@ def tar(source, destination):
     #  - We wish to explicitly set the owner and group of the archive.
     args = ['tar', '-c', '-z', '-f', destination]
 
-    if platform.system() != 'Darwin' and platform.system() != 'Windows':
+    if platform.system() not in ['Darwin', 'Windows']:
         args += ['--owner=0', '--group=0']
 
     # Discard stderr output such as 'tar: Failed to open ...'. We'll detect
@@ -193,8 +191,7 @@ def process_system_exit(e: SystemExit) -> int:
         # Fallback to 1 if there is no error code but a `SystemExit`.
         return 1
     try:
-        numeric_code = int(e.code)
-        return numeric_code
+        return int(e.code)
     except ValueError:
         # Fallback to 1 if it is an error message and print that message.
         print(e)
@@ -225,10 +222,9 @@ def validate_arguments(toolchain, args):
             fatal_error(
                 "can't find distcc-pump (please install distcc-pump)")
 
-    if args.sccache:
-        if toolchain.sccache is None:
-            fatal_error(
-                "can't find sccache (please install sccache)")
+    if args.sccache and toolchain.sccache is None:
+        fatal_error(
+            "can't find sccache (please install sccache)")
 
     if args.host_target is None or args.stdlib_deployment_targets is None:
         fatal_error("unknown operating system")
@@ -236,20 +232,20 @@ def validate_arguments(toolchain, args):
     if args.symbols_package:
         if not os.path.isabs(args.symbols_package):
             print(
-                '--symbols-package must be an absolute path '
-                '(was \'{}\')'.format(args.symbols_package))
+                f"--symbols-package must be an absolute path (was \'{args.symbols_package}\')"
+            )
             return 1
         if not args.install_symroot:
             fatal_error(
                 "--install-symroot is required when specifying "
                 "--symbols-package.")
 
-    if args.android:
-        if args.android_ndk is None or \
-                args.android_api_level is None:
-            fatal_error(
-                "when building for Android, --android-ndk "
-                "and --android-api-level must be specified")
+    if args.android and (
+        args.android_ndk is None or args.android_api_level is None
+    ):
+        fatal_error(
+            "when building for Android, --android-ndk "
+            "and --android-api-level must be specified")
 
     targets_needing_toolchain = [
         'build_indexstoredb',
@@ -277,29 +273,27 @@ def default_stdlib_deployment_targets(args):
     if host_target is None:
         return None
 
-    # OS X build machines configure all Darwin platforms by default.
-    # Put iOS native targets last so that we test them last
-    # (it takes a long time).
-    if host_target == StdlibDeploymentTarget.OSX.x86_64 or \
-            host_target == StdlibDeploymentTarget.OSX.arm64:
-        targets = [host_target]
-        if args.build_ios and args.build_ios_simulator:
-            targets.extend(StdlibDeploymentTarget.iOSSimulator.targets)
-        if args.build_ios and args.build_ios_device:
-            targets.extend(StdlibDeploymentTarget.iOS.targets)
-        if args.build_tvos and args.build_tvos_simulator:
-            targets.extend(StdlibDeploymentTarget.AppleTVSimulator.targets)
-        if args.build_tvos and args.build_tvos_device:
-            targets.extend(StdlibDeploymentTarget.AppleTV.targets)
-        if args.build_watchos and args.build_watchos_simulator:
-            targets.extend(StdlibDeploymentTarget
-                           .AppleWatchSimulator.targets)
-        if args.build_watchos and args.build_watchos_device:
-            targets.extend(StdlibDeploymentTarget.AppleWatch.targets)
-        return targets
-    else:
+    if host_target not in [
+        StdlibDeploymentTarget.OSX.x86_64,
+        StdlibDeploymentTarget.OSX.arm64,
+    ]:
         # All other machines only configure their host stdlib by default.
         return [host_target]
+    targets = [host_target]
+    if args.build_ios and args.build_ios_simulator:
+        targets.extend(StdlibDeploymentTarget.iOSSimulator.targets)
+    if args.build_ios and args.build_ios_device:
+        targets.extend(StdlibDeploymentTarget.iOS.targets)
+    if args.build_tvos and args.build_tvos_simulator:
+        targets.extend(StdlibDeploymentTarget.AppleTVSimulator.targets)
+    if args.build_tvos and args.build_tvos_device:
+        targets.extend(StdlibDeploymentTarget.AppleTV.targets)
+    if args.build_watchos and args.build_watchos_simulator:
+        targets.extend(StdlibDeploymentTarget
+                       .AppleWatchSimulator.targets)
+    if args.build_watchos and args.build_watchos_device:
+        targets.extend(StdlibDeploymentTarget.AppleWatch.targets)
+    return targets
 
 
 def apply_default_arguments(toolchain, args):
@@ -341,13 +335,15 @@ def apply_default_arguments(toolchain, args):
         cache_under_build_subdir = os.path.join(
             SWIFT_BUILD_ROOT, args.build_subdir, '.cache')
         if args.verbose_build:
-            print("Relocating XDG_CACHE_HOME to {}".format(cache_under_build_subdir))
+            print(f"Relocating XDG_CACHE_HOME to {cache_under_build_subdir}")
         workspace.relocate_xdg_cache_home_under(cache_under_build_subdir)
 
     if args.install_destdir is None:
         args.install_destdir = os.path.join(
-            SWIFT_BUILD_ROOT, args.build_subdir,
-            '{}-{}'.format('toolchain', args.host_target))
+            SWIFT_BUILD_ROOT,
+            args.build_subdir,
+            f'toolchain-{args.host_target}',
+        )
 
     # Add optional stdlib-deployment-targets
     if args.android:
@@ -367,7 +363,7 @@ def apply_default_arguments(toolchain, args):
 
     android_tgts = [tgt for tgt in args.stdlib_deployment_targets
                     if StdlibDeploymentTarget.Android.contains(tgt)]
-    if not args.android and len(android_tgts) > 0:
+    if not args.android and android_tgts:
         # If building natively on an Android host, avoid the NDK
         # cross-compilation configuration.
         if not StdlibDeploymentTarget.Android.contains(StdlibDeploymentTarget
@@ -378,8 +374,8 @@ def apply_default_arguments(toolchain, args):
     # Include the Darwin supported architectures in the CMake options.
     if args.swift_darwin_supported_archs:
         args.extra_cmake_options.append(
-            '-DSWIFT_DARWIN_SUPPORTED_ARCHS:STRING={}'.format(
-                args.swift_darwin_supported_archs))
+            f'-DSWIFT_DARWIN_SUPPORTED_ARCHS:STRING={args.swift_darwin_supported_archs}'
+        )
 
         # Remove unsupported Darwin archs from the standard library
         # deployment targets.
@@ -415,8 +411,8 @@ def apply_default_arguments(toolchain, args):
     # Include the Darwin module-only architectures in the CMake options.
     if args.swift_darwin_module_archs:
         args.extra_cmake_options.append(
-            '-DSWIFT_DARWIN_MODULE_ARCHS:STRING={}'.format(
-                args.swift_darwin_module_archs))
+            f'-DSWIFT_DARWIN_MODULE_ARCHS:STRING={args.swift_darwin_module_archs}'
+        )
     if (args.infer_cross_compile_hosts_on_darwin and
             platform.system() == "Darwin"):
         args.cross_compile_hosts = _infer_cross_compile_hosts_on_darwin(
@@ -434,20 +430,14 @@ def _infer_cross_compile_hosts_on_darwin(arch_we_are_running_on):
 
 
 def get_running_arch(dry_run):
-    # We can override the detected arch to support
-    # BuildSystem/infer-cross-compile-hosts-on-darwin-macosx.test
-    # Given the narrow scenario, we preferred using
-    # an environment variable instead of a build-script
-    # argument to make this less discoverable on purpose
-    if dry_run:
-        injected_arch = os.environ.get(
-            'ARCH_FOR_BUILDSYSTEM_TESTS',
-            platform.machine())
-        print("DRY RUN: assume build-script is being run on a "
-              f"{injected_arch} machine")
-        return injected_arch
-    else:
+    if not dry_run:
         return platform.machine()
+    injected_arch = os.environ.get(
+        'ARCH_FOR_BUILDSYSTEM_TESTS',
+        platform.machine())
+    print("DRY RUN: assume build-script is being run on a "
+          f"{injected_arch} machine")
+    return injected_arch
 
 
 # -----------------------------------------------------------------------------
@@ -629,8 +619,9 @@ def main_preset():
     if args.reconfigure:
         build_script_args += ["--reconfigure"]
 
-    print_note('using preset "{}", which expands to \n\n{}\n'.format(
-        args.preset, printable_command))
+    print_note(
+        f'using preset "{args.preset}", which expands to \n\n{printable_command}\n'
+    )
     shell.call_without_sleeping(build_script_args)
     return 0
 
@@ -662,7 +653,7 @@ def main_normal():
         xcrun_toolchain = os.environ.get('TOOLCHAINS',
                                          defaults.DARWIN_XCRUN_TOOLCHAIN)
 
-        print_note('Using toolchain {}'.format(xcrun_toolchain))
+        print_note(f'Using toolchain {xcrun_toolchain}')
         args.darwin_xcrun_toolchain = xcrun_toolchain
 
     toolchain = host_toolchain(xcrun_toolchain=args.darwin_xcrun_toolchain)
@@ -741,7 +732,7 @@ def main_normal():
 
     if args.symbols_package:
         print('--- Creating symbols package ---')
-        print('-- Package file: {} --'.format(args.symbols_package))
+        print(f'-- Package file: {args.symbols_package} --')
 
         if platform.system() == 'Darwin':
             prefix = targets.darwin_toolchain_prefix(args.install_prefix)
@@ -788,8 +779,10 @@ def main():
     validate_xcode_compatibility()
 
     # Determine if we are invoked in the preset mode and dispatch accordingly.
-    if any([(opt.startswith("--preset") or opt == "--show-presets")
-            for opt in sys.argv[1:]]):
+    if any(
+        (opt.startswith("--preset") or opt == "--show-presets")
+        for opt in sys.argv[1:]
+    ):
         return main_preset()
     else:
         return main_normal()

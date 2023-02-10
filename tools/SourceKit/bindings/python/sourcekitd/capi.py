@@ -91,7 +91,7 @@ class Object(object):
                 conf.lib.sourcekitd_request_array_set_value(
                     self, -1, Object(v))
         else:
-            raise ValueError("wrong init parameter (%s)" % type(obj))
+            raise ValueError(f"wrong init parameter ({type(obj)})")
         self._as_parameter_ = self._obj
 
     def from_param(self):
@@ -114,7 +114,7 @@ class Response(object):
         if isinstance(obj, c_object_p):
             self._obj = self._as_parameter_ = obj
         else:
-            raise ValueError("wrong init parameter (%s)" % type(obj))
+            raise ValueError(f"wrong init parameter ({type(obj)})")
 
     def get_payload(self):
         return conf.lib.sourcekitd_response_get_value(self)
@@ -143,7 +143,7 @@ class UIdent(object):
         elif isinstance(obj, str):
             self._obj = conf.lib.sourcekitd_uid_get_from_cstr(obj)
         else:
-            raise ValueError("wrong init parameter (%s)" % type(obj))
+            raise ValueError(f"wrong init parameter ({type(obj)})")
         self._as_parameter_ = self._obj
 
     def __str__(self):
@@ -153,7 +153,7 @@ class UIdent(object):
         return self._as_parameter_
 
     def __repr__(self):
-        return "UIdent('%s')" % self.__str__()
+        return f"UIdent('{self.__str__()}')"
 
     def _ptr(self):
         return addressof(self._obj.contents)
@@ -200,11 +200,11 @@ class ErrorKind(object):
     @staticmethod
     def from_id(id):
         if id >= len(ErrorKind._kinds) or ErrorKind._kinds[id] is None:
-            raise ValueError('Unknown type kind {}'.format(id))
+            raise ValueError(f'Unknown type kind {id}')
         return ErrorKind._kinds[id]
 
     def __repr__(self):
-        return 'ErrorKind.%s' % (self.name,)
+        return f'ErrorKind.{self.name}'
 
 
 ErrorKind.CONNECTION_INTERRUPTED = ErrorKind(1)
@@ -289,11 +289,11 @@ class VariantType(object):
     @staticmethod
     def from_id(id):
         if id >= len(VariantType._kinds) or VariantType._kinds[id] is None:
-            raise ValueError('Unknown type kind {}'.format(id))
+            raise ValueError(f'Unknown type kind {id}')
         return VariantType._kinds[id]
 
     def __repr__(self):
-        return 'VariantType.%s' % (self.name,)
+        return f'VariantType.{self.name}'
 
 
 VariantType.NULL = VariantType(0)
@@ -534,10 +534,9 @@ def register_function(lib, item, ignore_errors):
     try:
         func = getattr(lib, item[0])
     except AttributeError as e:
-        msg = str(e) + ". Please ensure that your Python bindings are "\
-                       "compatible with your sourcekitd version."
         if ignore_errors:
             return
+        msg = f"{str(e)}. Please ensure that your Python bindings are compatible with your sourcekitd version."
         raise LibsourcekitdError(msg)
 
     if len(item) >= 2:
@@ -616,7 +615,7 @@ class Config(object):
             file = 'sourcekitd.so'
 
         if Config.library_path:
-            file = Config.library_path + '/' + file
+            file = f'{Config.library_path}/{file}'
 
         return file
 

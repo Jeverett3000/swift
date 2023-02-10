@@ -40,8 +40,8 @@ def compile_and_stat(compile_args, output_file):
     mtime = time.ctime(os.path.getmtime(output_file))
 
     if VERBOSE:
-        print(" time = " + str(mtime))
-        print("  md5 = " + md5)
+        print(f" time = {str(mtime)}")
+        print(f"  md5 = {md5}")
 
     return (md5, mtime)
 
@@ -71,7 +71,7 @@ def main():
         return
 
     if VERBOSE:
-        print("Reference compilation of " + output_file + ":")
+        print(f"Reference compilation of {output_file}:")
 
     # As a workaround for rdar://problem/43442957 and rdar://problem/43439465
     # we have to "warm-up" the clang module cache. Without that in some cases
@@ -80,26 +80,31 @@ def main():
 
     reference_md5, reference_time = compile_and_stat(new_args, output_file)
 
-    subprocess.check_call(["cp", output_file, output_file + ".ref.o"])
+    subprocess.check_call(["cp", output_file, f"{output_file}.ref.o"])
 
     for iteration in range(1, NUM_ITERATIONS + 1):
 
         if VERBOSE:
-            print("Iteration {}:".format(iteration))
+            print(f"Iteration {iteration}:")
 
         second_md5, second_time = compile_and_stat(new_args, output_file)
 
         # This is the most important check: is the output file exactly the
         # same.
         if reference_md5 != second_md5:
-            sys.exit("non-determinism when generating: " + output_file +
-                     "\ncommand line:\n" + " ".join(new_args))
+            sys.exit(
+                (
+                    f"non-determinism when generating: {output_file}"
+                    + "\ncommand line:\n"
+                )
+                + " ".join(new_args)
+            )
 
         # This is the bonus check: does the compiler not re-write the output
         # file. (For compilations < 1sec this check may succeed even if the
         # file was overwritten).
         if compare_time and reference_time != second_time:
-            sys.exit("file re-written: " + output_file)
+            sys.exit(f"file re-written: {output_file}")
 
 
 if __name__ == '__main__':

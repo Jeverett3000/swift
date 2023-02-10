@@ -64,10 +64,11 @@ constants.""")
     args, unknown_args = parser.parse_known_args()
 
     if args.enable_windows_compatibility:
-        if args.enable_yaml_compatibility:
-            slashes_re = r'(/|\\\\|\\\\\\\\)'
-        else:
-            slashes_re = r'(/|\\\\)'
+        slashes_re = (
+            r'(/|\\\\|\\\\\\\\)'
+            if args.enable_yaml_compatibility
+            else r'(/|\\\\)'
+        )
     else:
         slashes_re = r'/'
 

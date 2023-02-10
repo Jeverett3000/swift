@@ -60,10 +60,7 @@ def main():
         length = len(line) - int(args.count_newline)
         if length > args.max_length:
             found_violation = True
-            print(
-                "line: {}. length: {}: {}".format(lineno, length, line.strip()),
-                file=args.outfile,
-            )
+            print(f"line: {lineno}. length: {length}: {line.strip()}", file=args.outfile)
 
     sys.exit(found_violation)
 

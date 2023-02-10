@@ -67,13 +67,11 @@ def _is_llvm_checkout(llvm_path):
     known files.
     """
 
-    if not os.path.exists(os.path.join(llvm_path, "tools")):
-        return False
-
-    if not os.path.exists(os.path.join(llvm_path, "CMakeLists.txt")):
-        return False
-
-    return True
+    return (
+        bool(os.path.exists(os.path.join(llvm_path, "CMakeLists.txt")))
+        if os.path.exists(os.path.join(llvm_path, "tools"))
+        else False
+    )
 
 
 def _is_swift_checkout(swift_path):
@@ -83,13 +81,11 @@ def _is_swift_checkout(swift_path):
     known files.
     """
 
-    if not os.path.exists(os.path.join(swift_path, "utils")):
-        return False
-
-    if not os.path.exists(os.path.join(swift_path, "CMakeLists.txt")):
-        return False
-
-    return True
+    return (
+        bool(os.path.exists(os.path.join(swift_path, "CMakeLists.txt")))
+        if os.path.exists(os.path.join(swift_path, "utils"))
+        else False
+    )
 
 
 def _get_swift_source_root(swift_path, env=None):
@@ -142,11 +138,11 @@ def _get_swift_source_root(swift_path, env=None):
         return source_root
 
     llvm_path = os.path.dirname(source_root)
-    if not _is_llvm_checkout(llvm_path):
-        return source_root
-
-    # Return the directory containing LLVM.
-    return os.path.dirname(llvm_path)
+    return (
+        os.path.dirname(llvm_path)
+        if _is_llvm_checkout(llvm_path)
+        else source_root
+    )
 
 
 def _get_swift_build_root(source_root, env=None):
@@ -178,10 +174,7 @@ def _get_swift_repo_name(swift_path, env=None):
     if "SWIFT_REPO_NAME" in env:
         return env["SWIFT_REPO_NAME"]
 
-    if not _is_swift_checkout(swift_path):
-        return None
-
-    return os.path.basename(swift_path)
+    return os.path.basename(swift_path) if _is_swift_checkout(swift_path) else None
 
 
 # --------------------------------------------------------------------------------------

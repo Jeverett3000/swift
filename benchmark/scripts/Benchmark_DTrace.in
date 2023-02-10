@@ -42,10 +42,9 @@ class DTraceResult(perf_test_driver.Result):
     @classmethod
     def data_format(cls, max_test_len):
         non_name_headers = DTraceResult.data_headers()[1:]
-        fmt = ("{:<%d}" % (max_test_len + 5)) + "".join(
+        return ("{:<%d}" % (max_test_len + 5)) + "".join(
             ["{:<%d}" % (len(h) + 2) for h in non_name_headers]
         )
-        return fmt
 
     @classmethod
     def print_data_header(cls, max_test_len, csv_output):
@@ -92,13 +91,7 @@ class DTraceBenchmarkDriver(perf_test_driver.BenchmarkDriver):
                     "-s",
                     DTRACE_PATH,
                     "-c",
-                    "%s %s %s %s"
-                    % (
-                        data["path"],
-                        data["test_name"],
-                        "--num-iters=%d" % iters,
-                        "--num-samples=2",
-                    ),
+                    f'{data["path"]} {data["test_name"]} {"--num-iters=%d" % iters} --num-samples=2',
                 ],
                 stdout=subprocess.PIPE,
                 stderr=open("/dev/null", "w"),

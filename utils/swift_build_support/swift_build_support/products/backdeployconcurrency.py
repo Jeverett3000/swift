@@ -116,8 +116,7 @@ class BackDeployConcurrency(cmake_product.CMakeProduct):
         self.cmake_options.define('SWIFT_SDKS:STRING', ';'.join(sdks_to_build))
 
         build_root = os.path.dirname(self.build_dir)
-        llvm_build_dir = os.path.join(
-            '..', build_root, '%s-%s' % ('llvm', host_target))
+        llvm_build_dir = os.path.join('..', build_root, f'llvm-{host_target}')
         llvm_cmake_dir = os.path.join(llvm_build_dir, 'lib', 'cmake', 'llvm')
         self.cmake_options.define('LLVM_DIR:PATH', llvm_cmake_dir)
 

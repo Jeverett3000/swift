@@ -31,7 +31,7 @@ def _fatal_error(message):
     """Raises a SystemExit error with the given message.
     """
 
-    raise SystemExit('ERROR: {}\n'.format(message))
+    raise SystemExit(f'ERROR: {message}\n')
 
 
 def _quote(arg):
@@ -48,21 +48,15 @@ def quote_command(args):
 
 
 def _coerce_dry_run(dry_run_override):
-    if dry_run_override is None:
-        return dry_run
-    else:
-        return dry_run_override
+    return dry_run if dry_run_override is None else dry_run_override
 
 
 def _echo_command(dry_run, command, env=None, prompt="+ "):
     output = []
     if env is not None:
-        output += ['env'] + [_quote("%s=%s" % (k, v))
-                             for (k, v) in sorted(env.items())]
+        output += ['env'] + [_quote(f"{k}={v}") for (k, v) in sorted(env.items())]
     output += [_quote(arg) for arg in command]
-    file = sys.stderr
-    if dry_run:
-        file = sys.stdout
+    file = sys.stdout if dry_run else sys.stderr
     print(prompt + ' '.join(output), file=file)
     file.flush()
 
@@ -83,7 +77,7 @@ def call(command, stderr=None, env=None, dry_run=None, echo=True):
     _env = None
     if env is not None:
         _env = dict(os.environ)
-        _env.update(env)
+        _env |= env
     try:
         subprocess.check_call(command, env=_env, stderr=stderr)
     except subprocess.CalledProcessError as e:
@@ -91,9 +85,7 @@ def call(command, stderr=None, env=None, dry_run=None, echo=True):
             "command terminated with a non-zero exit status " +
             str(e.returncode) + ", aborting")
     except OSError as e:
-        _fatal_error(
-            "could not execute '" + quote_command(command) +
-            "': " + e.strerror)
+        _fatal_error(f"could not execute '{quote_command(command)}': {e.strerror}")
 
 
 def call_without_sleeping(command, env=None, dry_run=False, echo=False):
@@ -128,7 +120,7 @@ def capture(command, stderr=None, env=None, dry_run=None, echo=True,
     _env = None
     if env is not None:
         _env = dict(os.environ)
-        _env.update(env)
+        _env |= env
     try:
         return subprocess.check_output(command, env=_env, stderr=stderr,
                                        universal_newlines=True)
@@ -143,9 +135,7 @@ def capture(command, stderr=None, env=None, dry_run=None, echo=True,
     except OSError as e:
         if optional:
             return None
-        _fatal_error(
-            "could not execute '" + quote_command(command) +
-            "': " + e.strerror)
+        _fatal_error(f"could not execute '{quote_command(command)}': {e.strerror}")
 
 
 @contextmanager
@@ -219,7 +209,7 @@ def run(*args, **kwargs):
     repo_path = os.getcwd()
     echo_output = kwargs.pop('echo', False)
     dry_run = kwargs.pop('dry_run', False)
-    env = kwargs.get('env', None)
+    env = kwargs.get('env')
     prefix = kwargs.pop('prefix', '')
     if dry_run:
         _echo_command(dry_run, *args, env=env, prompt="{0}+ ".format(prefix))

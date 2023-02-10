@@ -17,7 +17,7 @@ list of passes that the perf pipeline"""
     json_data = json.loads(subprocess.check_output(
         [tools.sil_passpipeline_dumper, '-Performance']))
     passes = sum((p[1:] for p in json_data), [])
-    passes = ['-' + x[1] for x in passes]
+    passes = [f'-{x[1]}' for x in passes]
 
     extra_args = []
     if args.extra_args is not None:
@@ -34,13 +34,13 @@ list of passes that the perf pipeline"""
         filename = sil_opt_invoker.get_suffixed_filename(str(count))
         result = sil_opt_invoker.invoke_with_passlist(passes, filename)
         if result['exit_code'] == 0:
-            print("*** Success with PassList: %s" % (' '.join(passes)))
+            print(f"*** Success with PassList: {' '.join(passes)}")
             continue
 
         cmdline = sil_opt_invoker.cmdline_with_passlist(passes)
-        print("*** Fail with PassList: %s" % (' '.join(passes)))
-        print("*** Output File: %s" % filename)
-        print("*** Reproducing commandline: %s" % ' '.join(cmdline))
+        print(f"*** Fail with PassList: {' '.join(passes)}")
+        print(f"*** Output File: {filename}")
+        print(f"*** Reproducing commandline: {' '.join(cmdline)}")
         print("*** Trying to reduce pass list and function list")
         result = opt_bug_reducer.pass_bug_reducer(tools, config, passes,
                                                   sil_opt_invoker, True)

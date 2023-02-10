@@ -25,9 +25,9 @@ def collectionForTraversal(traversal):  # noqa (N802 function name should be low
 def collectionTypeName(traversal, mutable, rangeReplaceable):  # noqa (N802)
     name = collectionForTraversal(traversal)
     if rangeReplaceable:
-        name = 'RangeReplaceable' + name
+        name = f'RangeReplaceable{name}'
     if mutable:
-        name = 'Mutable' + name
+        name = f'Mutable{name}'
     return name
 
 

@@ -75,8 +75,7 @@ def _make_line_map(target_filename, stream=None):
     result = [(0, target_filename, 1)]
     input = stream or io.open(target_filename, encoding='utf-8')
     for i, l in enumerate(input.readlines()):
-        m = line_pattern.match(l)
-        if m:
+        if m := line_pattern.match(l):
             result.append((i + 1, m.group(1), int(m.group(2))))
     return result
 
@@ -697,8 +696,11 @@ def run():
         sources = '(?P<file>' + '|'.join(re.escape(s) for s in sources) + ')'
 
         error_pattern = re.compile(
-            '^' + sources +
-            ':(?P<line>[0-9]+):(?P<column>[0-9]+):(?P<tail>.*?)\n?$')
+            (
+                f'^{sources}'
+                + ':(?P<line>[0-9]+):(?P<column>[0-9]+):(?P<tail>.*?)\n?$'
+            )
+        )
 
         assertion_pattern = re.compile(
             '^(?P<head>.*( file | at |#[0-9]+: |[\\[]))' +

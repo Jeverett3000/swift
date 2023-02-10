@@ -52,7 +52,7 @@ def argument_parser():
 
 
 def _push(sources, destination):
-    print('Pushing "{}" to device path "{}".'.format(sources, destination))
+    print(f'Pushing "{sources}" to device path "{destination}".')
     print(adb.commands.push(sources, destination))
 
 

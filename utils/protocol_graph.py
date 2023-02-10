@@ -154,14 +154,18 @@ for n in graph:
     cluster_builder.setdefault(n.translate(None, '_'), set()).add(n)
 
 # Grab the clusters with more than one member.
-clusters = dict((c, nodes)
-                for (c, nodes) in cluster_builder.items() if len(nodes) > 1)
+clusters = {
+    c: nodes for (c, nodes) in cluster_builder.items() if len(nodes) > 1
+}
 
 # A set of all intra-cluster edges
-cluster_edges = set(
-    (s, t) for (c, elements) in clusters.items()
+cluster_edges = {
+    (s, t)
+    for (c, elements) in clusters.items()
     for s in elements
-    for t in graph[s] if t in elements)
+    for t in graph[s]
+    if t in elements
+}
 
 print('digraph ProtocolHierarchies {')
 # ; packmode="array1"
@@ -173,7 +177,7 @@ for c in sorted(clusters):
     print('  subgraph "cluster_%s" {' % c)
     for (s, t) in sorted(cluster_edges):
         if s in clusters[c]:
-            print('%s -> %s [weight=100];' % (s, t))
+            print(f'{s} -> {t} [weight=100];')
     print('}')
 
 for node in sorted(graph.keys()):
@@ -183,21 +187,34 @@ for node in sorted(graph.keys()):
     divider = '<HR/>\n' if len(requirements) != 0 and len(generics) != 0 \
               else ''
 
-    label = node if len(requirements + generics) == 0 else (
-        ('\n<TABLE BORDER="0">\n<TR><TD>\n%s\n</TD></TR><HR/>' +
-            '\n%s%s%s</TABLE>\n') % (
+    label = (
+        node
+        if len(requirements + generics) == 0
+        else (
+            '\n<TABLE BORDER="0">\n<TR><TD>\n%s\n</TD></TR><HR/>'
+            + '\n%s%s%s</TABLE>\n'
+        )
+        % (
             node,
-            '\n'.join('<TR><TD>%s</TD></TR>' % r for r in requirements),
+            '\n'.join(f'<TR><TD>{r}</TD></TR>' for r in requirements),
             divider,
-            '\n'.join('<TR><TD>%s</TD></TR>' % g for g in generics)))
+            '\n'.join(f'<TR><TD>{g}</TD></TR>' for g in generics),
+        )
+    )
 
     print(interpolate('    %(node)s [style = %(style)s, label=<%(label)s>]'))
 for (parent, children) in sorted(graph.items()):
     print('    %s -> {' % parent, end=' ')
-    print('; '.join(sorted(
-        child for child in children
-        if not (parent, child) in cluster_edges)
-    ), end=' ')
+    print(
+        '; '.join(
+            sorted(
+                child
+                for child in children
+                if (parent, child) not in cluster_edges
+            )
+        ),
+        end=' ',
+    )
     print('}')
 
 print('}')

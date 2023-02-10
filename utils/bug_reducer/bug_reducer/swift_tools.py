@@ -20,7 +20,7 @@ def br_call(args, dry_run=DRY_RUN, echo=ECHO_CALLS):
 # We use this since our squelching of stderr can hide missing file errors.
 def sanity_check_file_exists(f):
     if not os.access(f, os.F_OK):
-        raise RuntimeError('Error! Could not find file: ' + f)
+        raise RuntimeError(f'Error! Could not find file: {f}')
 
 
 class SwiftTools(object):
@@ -34,7 +34,7 @@ asserting if one of the tools does not exist at the specified path"""
     def _get_tool(self, name):
         path = os.path.join(self.swift_build_dir, 'bin', name)
         if not os.access(path, os.F_OK):
-            error_msg = "Error! {} does not exist at: {}".format(name, path)
+            error_msg = f"Error! {name} does not exist at: {path}"
             raise RuntimeError(error_msg)
         return path
 
@@ -72,9 +72,7 @@ directory. Throws a runtime error if the tool does not exist
 
 
 def maybe_abspath(x):
-    if x is None:
-        return x
-    return os.path.abspath(x)
+    return x if x is None else os.path.abspath(x)
 
 
 class SILToolInvokerConfig(object):
@@ -97,15 +95,15 @@ class SILToolInvoker(object):
     def base_args(self, emit_sib):
         x = [self.tool]
         if self.config.sdk is not None:
-            x.append("-sdk=%s" % self.config.sdk)
+            x.append(f"-sdk={self.config.sdk}")
         if self.config.target is not None:
-            x.append("-target=%s" % self.config.target)
+            x.append(f"-target={self.config.target}")
         if self.config.resource_dir is not None:
-            x.append("-resource-dir=%s" % self.config.resource_dir)
+            x.append(f"-resource-dir={self.config.resource_dir}")
         if self.config.module_cache is not None:
-            x.append("-module-cache-path=%s" % self.config.module_cache)
+            x.append(f"-module-cache-path={self.config.module_cache}")
         if self.config.module_name is not None:
-            x.append("-module-name=%s" % self.config.module_name)
+            x.append(f"-module-name={self.config.module_name}")
         if emit_sib:
             x.append("-emit-sib")
         return x
@@ -139,7 +137,7 @@ class SILConstantInputToolInvoker(SILToolInvoker):
         raise RuntimeError('Abstract method')
 
     def get_suffixed_filename(self, suffix):
-        basename = self.base_input_file_stem + '_' + suffix
+        basename = f'{self.base_input_file_stem}_{suffix}'
         basename += self.base_input_file_ext
         return os.path.join(self.config.work_dir, basename)
 
@@ -196,8 +194,9 @@ class SILFuncExtractorInvoker(SILConstantInputToolInvoker):
         sanity_check_file_exists(funclist_path)
         assert isinstance(funclist_path, str)
         base_args = self.base_args(emit_sib)
-        base_args.extend([input_file, '-o', output_file,
-                          '-func-file=%s' % funclist_path])
+        base_args.extend(
+            [input_file, '-o', output_file, f'-func-file={funclist_path}']
+        )
         if invert:
             base_args.append('-invert')
         return base_args

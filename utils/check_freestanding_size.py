@@ -57,7 +57,7 @@ if args.triple == "x86_64-apple-macos":
         sys.exit(1)
 
 else:
-    print("triple {} not handled yet".format(args.triple))
+    print(f"triple {args.triple} not handled yet")
     sys.exit(1)
 
 print("max_text_size: %d" % max_text_size)
